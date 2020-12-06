@@ -6,11 +6,16 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableCovidData.class)
-@JsonDeserialize(as = ImmutableCovidData.class)
-public interface CovidData {
+@JsonSerialize
+@JsonDeserialize
+public interface Coordinate {
 
-    @JsonProperty("_data_")
-    String data();
+    @Value.Parameter
+    @JsonProperty("lat")
+    double getLat();
+
+    @Value.Parameter
+    @JsonProperty("lon")
+    double getLon();
 
 }
