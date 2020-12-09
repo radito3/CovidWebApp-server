@@ -1,0 +1,7 @@
+**/test
+**/target
+.gitignore
+*.iml
+/.idea
+*.md
+**/*mvn*

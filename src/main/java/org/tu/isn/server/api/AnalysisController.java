@@ -21,7 +21,7 @@ public class AnalysisController {
     private AnalysisService service;
 
     @PostMapping(path = "/analyze", consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE })
-    public ResponseEntity<Void> startTableViewAnalysis(HttpServletRequest request, @RequestBody(required = false) RequestCovidData body) {
+    public ResponseEntity<Void> startAnalysis(HttpServletRequest request, @RequestBody(required = false) RequestCovidData body) {
         if (request.getContentType()
                    .equals(MediaType.APPLICATION_JSON_VALUE)) {
             service.startAnalysisFromJson(body);
