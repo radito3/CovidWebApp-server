@@ -8,7 +8,7 @@ import org.immutables.value.Value;
 @JsonDeserialize
 public abstract class DiagramDataRow {
 
-    @JsonProperty("day")
+    @JsonProperty("date")
     abstract String getIdentifier();
 
     @JsonProperty("value")
@@ -16,7 +16,7 @@ public abstract class DiagramDataRow {
 
     @Value.Check
     public void validateIdentifier() {
-        if (!getIdentifier().matches("\\d\\d\\.\\d\\d")) { //e.g. 20.12 (December 20th)
+        if (!getIdentifier().matches("\\d{2}\\.\1\\.\\d{4}")) {
             throw new IllegalStateException("Invalid day format");
         }
     }

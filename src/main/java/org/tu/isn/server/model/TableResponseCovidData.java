@@ -11,7 +11,7 @@ import java.util.List;
 @JsonDeserialize
 public interface TableResponseCovidData {
 
-    @JsonProperty("table_headers")
+    @JsonProperty("table_column_names")
     List<String> getHeaders();
 
     @JsonProperty("table_rows")
@@ -21,6 +21,9 @@ public interface TableResponseCovidData {
     @JsonDeserialize
     interface TableRow {
 
+        @JsonProperty("table_row_name")
+        String getHeader();
+        
         @JsonProperty("table_row_data")
         List<Integer> getData();
     }

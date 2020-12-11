@@ -7,12 +7,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/health")
+@RequestMapping("/public/ping")
 public class HealthCheckController {
 
     @GetMapping(produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> healthCheck() {
-        return ResponseEntity.ok("ok");
+        return ResponseEntity.ok("pong");
     }
 
 }

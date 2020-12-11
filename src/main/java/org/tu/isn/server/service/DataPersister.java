@@ -6,6 +6,7 @@ import org.tu.isn.server.model.CsvDataRow;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -25,6 +26,10 @@ public class DataPersister {
     public void createCsvFromDataset(List<String> excludedCountries) {
         //TODO handle different dataset formats OR use 1 dataset OR create an interface DatasetHandler
         // either create the CsvCovidData object (which can overflow the memory) or stream data from dataset to file
+    }
+
+    public void createCsvFromFile(InputStream content) {
+
     }
 
     private void persistCsv(CsvCovidData data) {

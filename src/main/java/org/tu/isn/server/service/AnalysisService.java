@@ -4,20 +4,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.tu.isn.server.docker.DockerService;
-import org.tu.isn.server.model.CsvCovidData;
 import org.tu.isn.server.model.RequestCovidData;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.InputStream;
 
 @Service
 public class AnalysisService {
 
     @Autowired
     private DockerService dockerService;
-    @Autowired
-    private DataTransformer dataTransformer;
     @Autowired
     private DataPersister dataPersister;
 
@@ -32,12 +28,9 @@ public class AnalysisService {
     }
 
     public void startAnalysisFromFile(MultipartFile file) {
-        try {
-            Path tempFile = Files.createTempFile("temp-data", null);
-            file.transferTo(tempFile);
-            dataTransformer.transformFileFromJsonToCsv(tempFile);
+        try (InputStream content = file.getInputStream()) {
+            dataPersister.createCsvFromFile(content);
             dockerService.callScriptContainer();
-            Files.delete(tempFile);
         } catch (IOException e) {
             e.printStackTrace();
         }
