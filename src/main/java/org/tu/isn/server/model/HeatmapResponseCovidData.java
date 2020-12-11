@@ -14,8 +14,8 @@ public interface HeatmapResponseCovidData {
     List<Coordinate> getCoordinates();
 
     @JsonProperty("countries")
-    List<String> getCountres();
+    List<String> getCountries();
 
-    //rest of the data...
+    //TODO either casualties per country or {infected, deaths, recovered} per country
 
 }

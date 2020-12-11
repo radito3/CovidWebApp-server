@@ -20,23 +20,17 @@ public class DataController {
 
     @GetMapping(path = "/heatmap", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<HeatmapResponseCovidData> getHeatmapStatus() {
-        //TODO json will probably need to contain latitude/longitude coordinates along with the data of infected/recovered/deaths
-        return ResponseEntity.ok()
-            .build();
+        return ResponseEntity.ok(dataExtractor.extractHeatmapData());
     }
 
     @GetMapping(path = "/diagram", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<DiagramResponseCovidData> getDiagramStatus() {
-        //TODO json will depend on the diagram
-        return ResponseEntity.ok()
-            .build();
+        return ResponseEntity.ok(dataExtractor.extractDiagramData());
     }
 
     @GetMapping(path = "/table", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<TableResponseCovidData> getTableViewStatus() {
-        //TODO json will probably only need to contain the data of infected/recovered/deaths per time slice (past/present/future)
-        return ResponseEntity.ok()
-            .build();
+        return ResponseEntity.ok(dataExtractor.extractTableData());
     }
 
 }

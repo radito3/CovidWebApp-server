@@ -5,7 +5,7 @@ import org.immutables.value.Value;
 import java.util.List;
 
 @Value.Immutable
-public interface DataRow {
+public interface CsvDataRow {
 
-    List<Double> getDataRow();
+    List<Integer> getData();
 }

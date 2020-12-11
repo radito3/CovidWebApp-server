@@ -1,15 +1,16 @@
 package org.tu.isn.server.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.immutables.value.Value;
 
+import java.util.List;
+
 @Value.Immutable
-@JsonSerialize
+@JsonDeserialize
 public interface RequestCovidData {
 
-    @JsonProperty("test")
-    String test();
+    @JsonProperty("excluded")
+    List<String> getExcludedCountries();
 
-    //TODO figure out the fields that the server will consume from the Web UI
 }

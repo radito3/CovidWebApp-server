@@ -22,8 +22,14 @@ public class CovidWebAppServerApplication {
         @Override
         public void run() {
             try {
-                HttpClient.newHttpClient()
-                          .send(buildRequest(), this::handleResponse);
+                int statusCode = HttpClient.newBuilder()
+                                           .version(HttpClient.Version.HTTP_1_1)
+                                           .build()
+                                           .send(buildRequest(), HttpResponse.BodyHandlers.discarding())
+                                           .statusCode();
+                if (statusCode / 100 != 2) {
+                    System.err.println("Python script didn't exit correctly");
+                }
             } catch (IOException | InterruptedException e) {
                 e.printStackTrace();
             }
@@ -31,16 +37,9 @@ public class CovidWebAppServerApplication {
 
         private HttpRequest buildRequest() {
             return HttpRequest.newBuilder()
-                              .GET()
+                              .POST(HttpRequest.BodyPublishers.noBody())
                               .uri(URI.create(System.getenv("PY_SCRIPT_URL") + "/shutdown"))
                               .build();
-        }
-
-        private HttpResponse.BodySubscriber<?> handleResponse(HttpResponse.ResponseInfo responseInfo) {
-            if (responseInfo.statusCode() / 100 != 2) {
-                System.err.println("Python script didn't exit correctly");
-            }
-            return null;
         }
     }
 

@@ -9,6 +9,6 @@ public interface CsvCovidData {
 
     List<String> getHeaders();
 
-    List<DataRow> getData();
+    List<CsvDataRow> getData();
 
 }

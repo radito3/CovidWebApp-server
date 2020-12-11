@@ -8,10 +8,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.tu.isn.server.model.RequestCovidData;
 import org.tu.isn.server.service.AnalysisService;
-
-import javax.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -20,18 +19,16 @@ public class AnalysisController {
     @Autowired
     private AnalysisService service;
 
-    @PostMapping(path = "/analyze", consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE })
-    public ResponseEntity<Void> startAnalysis(HttpServletRequest request, @RequestBody(required = false) RequestCovidData body) {
-        if (request.getContentType()
-                   .equals(MediaType.APPLICATION_JSON_VALUE)) {
-            service.startAnalysisFromJson(body);
-        } else if (request.getContentType()
-                          .equals(MediaType.MULTIPART_FORM_DATA_VALUE)) {
-            service.startAnalysisFromFile(request);
-        } else {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                                 .build();
-        }
+    @PostMapping(path = "/analyze_existing_data", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Void> startAnalysisFromJson(@RequestBody(required = false) RequestCovidData body) {
+        service.startAnalysisFromJson(body);
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                             .build();
+    }
+
+    @PostMapping(path = "/analyze_user_data", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> startAnalysisFromFile(MultipartFile file) {
+        service.startAnalysisFromFile(file);
         return ResponseEntity.status(HttpStatus.ACCEPTED)
                              .build();
     }

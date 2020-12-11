@@ -4,22 +4,28 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.immutables.value.Value;
 
+import java.util.List;
+
 @Value.Immutable
 @JsonDeserialize
 public interface DiagramResponseCovidData {
 
-    @JsonProperty("x_name")
-    String getXName();
+    @JsonProperty("x_axis_name")
+    String getAbscissaValueName();
 
-    @JsonProperty("y_name")
-    String getYName();
+    @JsonProperty("x_axis_div")
+    List<String> getAbscissaValueDivisions();
 
-    @JsonProperty("x_value")
-    double getXValue();
+    @JsonProperty("y_axis_name")
+    String getOrdinateValeName();
 
-    @JsonProperty("y_value")
-    double getYValue();
+    @JsonProperty("y_axis_div")
+    List<Integer> getOrdinateValueDivisions();
 
-    //rest of the data...
+    @JsonProperty("present_data")
+    List<DiagramDataRow> getPresentData();
+
+    @JsonProperty("predicted_data")
+    List<DiagramDataRow> getPredictedData();
 
 }

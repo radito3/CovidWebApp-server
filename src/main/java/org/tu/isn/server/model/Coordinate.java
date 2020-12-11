@@ -12,10 +12,10 @@ public interface Coordinate {
 
     @Value.Parameter
     @JsonProperty("lat")
-    double getLat();
+    double getLatitude();
 
     @Value.Parameter
     @JsonProperty("lon")
-    double getLon();
+    double getLongitude();
 
 }
