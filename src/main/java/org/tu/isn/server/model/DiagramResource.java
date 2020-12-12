@@ -8,9 +8,12 @@ import java.util.List;
 
 @Value.Immutable
 @JsonSerialize
-public interface TableResponseCovidData extends PaginatedResponse<TableDataRow> {
+public interface DiagramResource {
 
-    @JsonProperty("table_column_names")
-    List<String> getHeaders();
+    @JsonProperty("present_data")
+    List<DiagramDataRow> getPresentData();
+
+    @JsonProperty("predicted_data")
+    List<DiagramDataRow> getPredictedData();
 
 }

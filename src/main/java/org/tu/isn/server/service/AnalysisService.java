@@ -3,6 +3,7 @@ package org.tu.isn.server.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.tu.isn.server.docker.CallType;
 import org.tu.isn.server.docker.DockerService;
 import org.tu.isn.server.model.RequestCovidData;
 
@@ -17,23 +18,27 @@ public class AnalysisService {
     @Autowired
     private DataPersister dataPersister;
 
-    public void startAnalysisFromJson(RequestCovidData data) {
+    public String startAnalysisFromJson(RequestCovidData data) {
         if (data == null) {
             dataPersister.createCsvFromDataset();
-            dockerService.callScriptContainer();
-            return;
+            return dockerService.callScriptContainer(CallType.START_ANALYSIS, null);
         }
         dataPersister.createCsvFromDataset(data.getExcludedCountries());
-        dockerService.callScriptContainer();
+        return dockerService.callScriptContainer(CallType.START_ANALYSIS, null);
     }
 
-    public void startAnalysisFromFile(MultipartFile file) {
+    public String startAnalysisFromFile(MultipartFile file) {
         try (InputStream content = file.getInputStream()) {
             dataPersister.createCsvFromFile(content);
-            dockerService.callScriptContainer();
+            return dockerService.callScriptContainer(CallType.START_ANALYSIS, null);
         } catch (IOException e) {
             e.printStackTrace();
+            return null;
         }
+    }
+
+    public boolean checkStatus(String id) {
+        return dockerService.callScriptContainer(CallType.POLL_STATUS, id);
     }
 
 }

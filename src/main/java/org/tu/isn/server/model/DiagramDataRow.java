@@ -6,19 +6,12 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonDeserialize
-public abstract class DiagramDataRow {
+public interface DiagramDataRow {
 
     @JsonProperty("date")
-    abstract String getIdentifier();
+    String getIdentifier();
 
     @JsonProperty("value")
-    abstract int getValue();
-
-    @Value.Check
-    public void validateIdentifier() {
-        if (!getIdentifier().matches("\\d{2}\\.\1\\.\\d{4}")) {
-            throw new IllegalStateException("Invalid day format");
-        }
-    }
+    Integer getValue();
 
 }

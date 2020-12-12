@@ -8,9 +8,9 @@ import java.util.List;
 
 @Value.Immutable
 @JsonSerialize
-public interface TableResponseCovidData extends PaginatedResponse<TableDataRow> {
+public interface HeatmapResource {
 
-    @JsonProperty("table_column_names")
-    List<String> getHeaders();
+    @JsonProperty("data")
+    List<HeatmapDataRow> getDataRows();
 
 }

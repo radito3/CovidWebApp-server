@@ -15,6 +15,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 @Component
 public class DataPersister {
@@ -24,16 +25,15 @@ public class DataPersister {
     }
 
     public void createCsvFromDataset(List<String> excludedCountries) {
-        //TODO handle different dataset formats OR use 1 dataset OR create an interface DatasetHandler
-        // either create the CsvCovidData object (which can overflow the memory) or stream data from dataset to file
+        Path inputDataFile = Paths.get(System.getenv("INPUT_DATA_FILE_NAME") + "-" + UUID.randomUUID().toString());
     }
 
     public void createCsvFromFile(InputStream content) {
-
+        Path inputDataFile = Paths.get(System.getenv("INPUT_DATA_FILE_NAME") + "-" + UUID.randomUUID().toString());
     }
 
     private void persistCsv(CsvCovidData data) {
-        Path inputDataFile = Paths.get(System.getenv("INPUT_DATA_FILE_NAME"));
+        Path inputDataFile = Paths.get(System.getenv("INPUT_DATA_FILE_NAME") + "-" + UUID.randomUUID().toString());
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
                         Files.newOutputStream(inputDataFile, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING),
                         StandardCharsets.UTF_8))) {

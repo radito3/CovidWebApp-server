@@ -21,10 +21,18 @@ public class DataExtractionService {
     private static final String INPUT_DATA_FILE_NAME = System.getenv("INPUT_DATA_FILE_NAME");
     private static final String OUTPUT_DATA_FILE_NAME = System.getenv("OUTPUT_DATA_FILE_NAME");
 
-    public TableResponseCovidData extractTableData() {
+    public TableResponseCovidData extractTableData(int page) {
         List<String> columnNames = new ArrayList<>();
-        List<TableResponseCovidData.TableRow> rows = new ArrayList<>();
+        List<TableDataRow> rows = new ArrayList<>();
         try {
+            long fileLines = processFileContent(OUTPUT_DATA_FILE_NAME, reader -> {
+                long lines = 0;
+                while (reader.readLine() != null) {
+                    lines++;
+                }
+                return lines;
+            });
+
             consumeFileContent(OUTPUT_DATA_FILE_NAME, reader -> {
                 String line = reader.readLine();
                 if (line == null) {
@@ -47,10 +55,10 @@ public class DataExtractionService {
                                                   .map(Integer::valueOf)
                                                   .collect(Collectors.toList());
 
-                    rows.add(ImmutableTableResponseCovidData.TableRow.builder()
-                                                                     .header(rowName)
-                                                                     .data(rowData)
-                                                                     .build());
+                    rows.add(ImmutableTableDataRow.builder()
+                                                  .header(rowName)
+                                                  .data(rowData)
+                                                  .build());
 
                     line = reader.readLine();
                 }
@@ -60,15 +68,15 @@ public class DataExtractionService {
         }
         return ImmutableTableResponseCovidData.builder()
                                               .headers(columnNames)
-                                              .rows(rows)
+                                              .resources(rows)
                                               .build();
     }
 
-    public HeatmapResponseCovidData extractHeatmapData() {
+    public HeatmapResponseCovidData extractHeatmapData(int page) {
         return null;
     }
 
-    public DiagramResponseCovidData extractDiagramData() {
+    public DiagramResponseCovidData extractDiagramData(int page) {
         List<DiagramDataRow> presentData = new ArrayList<>();
         List<DiagramDataRow> predictedData = new ArrayList<>();
         try {
@@ -82,16 +90,25 @@ public class DataExtractionService {
                                                 .abscissaValueDivisions(Arrays.asList("Jan", "Feb", "Mar", "Apr", "May"))
                                                 .ordinateValeName("Num Casualties")
                                                 .ordinateValueDivisions(Arrays.asList(5000, 10000, 15000, 20000, 25000))
-                                                .presentData(presentData)
-                                                .predictedData(predictedData)
+                                                .resources(List.of(ImmutableDiagramResource.builder()
+                                                                                           .presentData(presentData)
+                                                                                           .predictedData(predictedData)
+                                                                                           .build()))
                                                 .build();
     }
 
-    private void consumeFileContent(String fileName, FileContentConsumer readerConsumer) throws IOException {
+    private void consumeFileContent(String fileName, FileContentConsumer consumer) throws IOException {
+        processFileContent(fileName, reader -> {
+            consumer.accept(reader);
+            return null;
+        });
+    }
+
+    private <T> T processFileContent(String fileName, FileContentProcessor<T> processor) throws IOException {
         Path outputDataFile = Paths.get(fileName);
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(
             Files.newInputStream(outputDataFile), StandardCharsets.UTF_8))) {
-            readerConsumer.accept(reader);
+            return processor.accept(reader);
         }
     }
 
@@ -116,6 +133,11 @@ public class DataExtractionService {
     @FunctionalInterface
     interface FileContentConsumer {
         void accept(BufferedReader reader) throws IOException;
+    }
+
+    @FunctionalInterface
+    interface FileContentProcessor<T> {
+        T accept(BufferedReader reader) throws IOException;
     }
 
 }
