@@ -1,12 +1,12 @@
 package org.tu.isn.server.service;
 
 import org.springframework.stereotype.Component;
-import org.tu.isn.server.model.CsvCovidData;
-import org.tu.isn.server.model.CsvDataRow;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -15,36 +15,50 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 @Component
 public class DataPersister {
 
-    public void createCsvFromDataset() {
-        createCsvFromDataset(Collections.emptyList());
+    //TODO maybe have a bean that provides an input stream to the dataset
+
+    public String createCsvFromDataset() {
+        return createCsvFromDataset(Collections.emptySet());
     }
 
-    public void createCsvFromDataset(List<String> excludedCountries) {
-        Path inputDataFile = Paths.get(System.getenv("INPUT_DATA_FILE_NAME") + "-" + UUID.randomUUID().toString());
+    public String createCsvFromDataset(Set<String> excludedCountries) {
+        String inputDataFileName = System.getenv("INPUT_DATA_FILE_NAME") + "-" + UUID.randomUUID().toString();
+        Path inputDataFile = Paths.get(inputDataFileName);
+        //provide dataset content
+        transferContentToCsv(null, inputDataFile,
+                                        line -> !excludedCountries.contains(line.split(",")[1]));
+        return inputDataFileName;
     }
 
-    public void createCsvFromFile(InputStream content) {
-        Path inputDataFile = Paths.get(System.getenv("INPUT_DATA_FILE_NAME") + "-" + UUID.randomUUID().toString());
+    public String createCsvFromFile(InputStream content) {
+        String inputDataFileName = System.getenv("INPUT_DATA_FILE_NAME") + "-" + UUID.randomUUID().toString();
+        Path inputDataFile = Paths.get(inputDataFileName);
+        transferContentToCsv(content, inputDataFile, line -> true);
+        return inputDataFileName;
     }
 
-    private void persistCsv(CsvCovidData data) {
-        Path inputDataFile = Paths.get(System.getenv("INPUT_DATA_FILE_NAME") + "-" + UUID.randomUUID().toString());
-        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
-                        Files.newOutputStream(inputDataFile, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING),
+    private void transferContentToCsv(InputStream content, Path inputFile, Predicate<String> countryFilter) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(content, StandardCharsets.UTF_8));
+             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
+                        Files.newOutputStream(inputFile, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING),
                         StandardCharsets.UTF_8))) {
-            writeHeaders(data.getHeaders(), writer);
-            writeData(data.getData(), writer);
+            reader.readLine(); //skip headers
+            writeHeaders(writer);
+            writeData(reader, writer, countryFilter);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private void writeHeaders(List<String> headers, BufferedWriter writer) throws IOException {
+    private void writeHeaders(BufferedWriter writer) throws IOException {
+        List<String> headers = List.of("Country", "");
         for (int i = 0; i < headers.size(); i++) {
             writer.write(headers.get(i));
             if (i != headers.size() - 1) {
@@ -54,18 +68,23 @@ public class DataPersister {
         writer.newLine();
     }
 
-    private void writeData(List<CsvDataRow> dataRows, BufferedWriter writer) throws IOException {
-        for (CsvDataRow dataRow : dataRows) {
-            writeDataRow(dataRow, writer);
-            writer.newLine();
+    private void writeData(BufferedReader reader, BufferedWriter writer, Predicate<String> countryFilter) throws IOException {
+        for (String line = reader.readLine(); line != null; line = reader.readLine()) {
+            if (countryFilter.test(line)) {
+                writeDataRow(reader, writer);
+                writer.newLine();
+            }
         }
     }
 
-    private void writeDataRow(CsvDataRow dataRow, BufferedWriter writer) throws IOException {
-        List<Integer> data = dataRow.getData();
-        for (int i = 0; i < data.size(); i++) {
-            writer.write(data.get(i));
-            if (i != data.size() - 1) {
+    private void writeDataRow(BufferedReader reader, BufferedWriter writer) throws IOException {
+        String line = reader.readLine();
+        String[] parts = line.split(",");
+        int partsLimit = 6; //configure this from dataset
+
+        for (int i = 0; i < partsLimit; i++) {
+            writer.write(parts[i]);
+            if (i != partsLimit - 1) {
                 writer.write(',');
             }
         }

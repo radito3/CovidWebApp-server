@@ -10,7 +10,7 @@ import java.util.List;
 @JsonSerialize
 public interface TableResponseCovidData extends PaginatedResponse<TableDataRow> {
 
-    @JsonProperty("table_column_names")
+    @JsonProperty("column_names")
     List<String> getHeaders();
 
 }

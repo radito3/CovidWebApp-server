@@ -25,8 +25,9 @@ public class DataController {
     }
 
     @GetMapping(path = "/diagram", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<DiagramResponseCovidData> getDiagramStatus(@RequestParam(name = "page", required = false, defaultValue = "0") String page) {
-        return ResponseEntity.ok(dataExtractor.extractDiagramData(Integer.parseInt(page)));
+    public ResponseEntity<DiagramResponseCovidData> getDiagramStatus(@RequestParam(name = "page", required = false, defaultValue = "0") String page,
+                                                                     @RequestParam(name = "country") String country) {
+        return ResponseEntity.ok(dataExtractor.extractDiagramData(Integer.parseInt(page), country));
     }
 
     @GetMapping(path = "/table", produces = MediaType.APPLICATION_JSON_VALUE)

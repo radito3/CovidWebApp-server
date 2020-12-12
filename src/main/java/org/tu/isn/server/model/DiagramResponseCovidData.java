@@ -8,7 +8,7 @@ import java.util.List;
 
 @Value.Immutable
 @JsonSerialize
-public interface DiagramResponseCovidData extends PaginatedResponse<DiagramResource> {
+public interface DiagramResponseCovidData extends PaginatedResponse<DiagramDataRow> {
 
     @JsonProperty("x_axis_name")
     String getAbscissaValueName();

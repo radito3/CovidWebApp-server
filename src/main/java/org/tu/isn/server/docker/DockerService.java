@@ -20,7 +20,7 @@ public class DockerService {
     public <T> T callScriptContainer(CallType callType, String arg) {
         try {
             if (callType == CallType.START_ANALYSIS) {
-                return (T) startAnalysis();
+                return (T) startAnalysis(arg);
             }
             return (T) pollStatus(arg);
         } catch (IOException | InterruptedException e) {
@@ -29,8 +29,9 @@ public class DockerService {
         }
     }
 
-    private String startAnalysis() throws IOException, InterruptedException {
-        HttpResponse<String> response = client.send(buildPostRequest(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+    private String startAnalysis(String fileName) throws IOException, InterruptedException {
+        HttpResponse<String> response = client.send(buildPostRequest(fileName),
+                                                    HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
         if (response.statusCode() / 100 != 2) {
             return null;
         }
@@ -43,11 +44,10 @@ public class DockerService {
         return statusCode == 201;
     }
 
-    private HttpRequest buildPostRequest() {
+    private HttpRequest buildPostRequest(String fileName) {
         String requestUrl = System.getenv("PY_SCRIPT_URL") + "/analyze";
-        String inputFileName = System.getenv("INPUT_DATA_FILE_NAME");
         return HttpRequest.newBuilder()
-                          .POST(HttpRequest.BodyPublishers.ofString("{\"input_file_name\":\"" + inputFileName + "\"}"))
+                          .POST(HttpRequest.BodyPublishers.ofString("{\"input_file_name\":\"" + fileName + "\"}"))
                           .uri(URI.create(requestUrl))
                           .build();
     }

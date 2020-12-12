@@ -9,6 +9,7 @@ import org.tu.isn.server.model.RequestCovidData;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashSet;
 
 @Service
 public class AnalysisService {
@@ -20,17 +21,17 @@ public class AnalysisService {
 
     public String startAnalysisFromJson(RequestCovidData data) {
         if (data == null) {
-            dataPersister.createCsvFromDataset();
-            return dockerService.callScriptContainer(CallType.START_ANALYSIS, null);
+            String fileName = dataPersister.createCsvFromDataset();
+            return dockerService.callScriptContainer(CallType.START_ANALYSIS, fileName);
         }
-        dataPersister.createCsvFromDataset(data.getExcludedCountries());
-        return dockerService.callScriptContainer(CallType.START_ANALYSIS, null);
+        String fileName = dataPersister.createCsvFromDataset(new HashSet<>(data.getExcludedCountries()));
+        return dockerService.callScriptContainer(CallType.START_ANALYSIS, fileName);
     }
 
     public String startAnalysisFromFile(MultipartFile file) {
         try (InputStream content = file.getInputStream()) {
-            dataPersister.createCsvFromFile(content);
-            return dockerService.callScriptContainer(CallType.START_ANALYSIS, null);
+            String fileName = dataPersister.createCsvFromFile(content);
+            return dockerService.callScriptContainer(CallType.START_ANALYSIS, fileName);
         } catch (IOException e) {
             e.printStackTrace();
             return null;

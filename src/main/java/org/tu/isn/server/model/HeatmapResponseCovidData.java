@@ -5,6 +5,6 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonSerialize
-public interface HeatmapResponseCovidData extends PaginatedResponse<HeatmapResource> {
+public interface HeatmapResponseCovidData extends PaginatedResponse<HeatmapDataRow> {
 
 }

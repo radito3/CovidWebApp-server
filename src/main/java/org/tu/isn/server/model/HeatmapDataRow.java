@@ -14,13 +14,7 @@ public interface HeatmapDataRow {
     @JsonProperty("country")
     String getCountryName();
 
-    @JsonProperty("deaths")
-    Integer getDeaths();
-
-    @JsonProperty("recovered")
-    Integer getRecovered();
-
-    @JsonProperty("active")
-    Integer getActive();
+    @JsonProperty("value")
+    Integer getValue();
 
 }
