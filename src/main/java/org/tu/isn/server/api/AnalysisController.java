@@ -6,7 +6,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.tu.isn.server.model.RequestCovidData;
+import org.tu.isn.server.model.RequestData;
 import org.tu.isn.server.service.AnalysisService;
 
 @RestController
@@ -17,7 +17,7 @@ public class AnalysisController {
     private AnalysisService service;
 
     @PostMapping(path = "/analyze_existing_data", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_PLAIN_VALUE)
-    public ResponseEntity<String> startAnalysisFromJson(@RequestBody(required = false) RequestCovidData body) {
+    public ResponseEntity<String> startAnalysisFromJson(@RequestBody(required = false) RequestData body) {
         String id = service.startAnalysisFromJson(body);
         if (id != null) {
             return ResponseEntity.status(HttpStatus.ACCEPTED)

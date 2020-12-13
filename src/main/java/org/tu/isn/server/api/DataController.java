@@ -20,8 +20,9 @@ public class DataController {
     private DataExtractionService dataExtractor;
 
     @GetMapping(path = "/heatmap", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<HeatmapResponseCovidData> getHeatmapStatus(@RequestParam(name = "page", required = false, defaultValue = "0") String page) {
-        return ResponseEntity.ok(dataExtractor.extractHeatmapData(Integer.parseInt(page)));
+    public ResponseEntity<HeatmapResponseCovidData> getHeatmapStatus(@RequestParam(name = "page", required = false, defaultValue = "0") String page,
+                                                                     @RequestParam(name = "aggregate_by", required = false, defaultValue = "day") String aggregateBy) {
+        return ResponseEntity.ok(dataExtractor.extractHeatmapData(Integer.parseInt(page), aggregateBy));
     }
 
     @GetMapping(path = "/diagram", produces = MediaType.APPLICATION_JSON_VALUE)

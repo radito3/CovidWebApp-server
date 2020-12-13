@@ -8,7 +8,7 @@ import java.util.List;
 
 @Value.Immutable
 @JsonDeserialize
-public interface RequestCovidData {
+public interface RequestData {
 
     @JsonProperty("excluded")
     List<String> getExcludedCountries();

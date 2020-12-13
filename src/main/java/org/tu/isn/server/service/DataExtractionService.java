@@ -59,25 +59,24 @@ public class DataExtractionService {
             e.printStackTrace();
         }
         return ImmutableTableResponseCovidData.builder()
-                                              .headers(List.of("Country", "Deaths", "Recovered", "Active"))
+                                              .headers(List.of("Date", "Country", "Deaths", "Recovered", "Active"))
                                               .resources(rows)
                                               .build();
     }
 
-    public HeatmapResponseCovidData extractHeatmapData(int page) {
+    public HeatmapResponseCovidData extractHeatmapData(int page, String aggregateBy) {
+        AggregateType aggregateType = AggregateType.of(aggregateBy);
+
         return null;
     }
 
     public DiagramResponseCovidData extractDiagramData(int page, String country) {
         //TODO determine whether to extract from the input file (the present data) or the output file (ML predicted data)
-        // depending on the page (which is a batch of 10 days)
+        // depending on the page
         // so the end of present data and beginning of predicted data is the last day in the dataset
         List<DiagramDataRow> data = new ArrayList<>();
-//        List<DiagramDataRow> predictedData = new ArrayList<>();
         try {
-            //TODO filter by country
             extractDiagramData(data, INPUT_DATA_FILE_NAME);
-//            extractDiagramData(predictedData, OUTPUT_DATA_FILE_NAME);
         } catch (IOException e) {
             e.printStackTrace();
         }

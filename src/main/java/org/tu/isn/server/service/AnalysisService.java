@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.tu.isn.server.docker.CallType;
 import org.tu.isn.server.docker.DockerService;
-import org.tu.isn.server.model.RequestCovidData;
+import org.tu.isn.server.model.RequestData;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,7 +19,7 @@ public class AnalysisService {
     @Autowired
     private DataPersister dataPersister;
 
-    public String startAnalysisFromJson(RequestCovidData data) {
+    public String startAnalysisFromJson(RequestData data) {
         if (data == null) {
             String fileName = dataPersister.createCsvFromDataset();
             return dockerService.callScriptContainer(CallType.START_ANALYSIS, fileName);

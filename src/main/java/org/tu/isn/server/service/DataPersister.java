@@ -33,7 +33,7 @@ public class DataPersister {
         Path inputDataFile = Paths.get(inputDataFileName);
         //provide dataset content
         transferContentToCsv(null, inputDataFile,
-                                        line -> !excludedCountries.contains(line.split(",")[1]));
+                             line -> !excludedCountries.contains(line.split(",")[1]));
         return inputDataFileName;
     }
 
@@ -58,7 +58,7 @@ public class DataPersister {
     }
 
     private void writeHeaders(BufferedWriter writer) throws IOException {
-        List<String> headers = List.of("Country", "");
+        List<String> headers = List.of("Date", "Country", "Deaths", "Recovered", "Active");
         for (int i = 0; i < headers.size(); i++) {
             writer.write(headers.get(i));
             if (i != headers.size() - 1) {
