@@ -4,16 +4,23 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.immutables.value.Value;
 
-import java.util.List;
-
 @Value.Immutable
 @JsonSerialize
 public interface TableDataRow {
 
-    @JsonProperty("row_name")
-    String getHeader();
+    @JsonProperty("date")
+    String getDate();
 
-    @JsonProperty("row_data")
-    List<Integer> getData();
+    @JsonProperty("country")
+    String getCountry();
+
+    @JsonProperty("deaths")
+    Integer getDeaths();
+
+    @JsonProperty("recovered")
+    Integer getRecovered();
+
+    @JsonProperty("active")
+    Integer getActive();
 
 }

@@ -42,7 +42,7 @@ public class DockerService {
     private Boolean pollStatus(String id) throws IOException, InterruptedException {
         int statusCode = client.send(buildGetRequest(id), HttpResponse.BodyHandlers.discarding())
                                .statusCode();
-        return statusCode == 201;
+        return statusCode == 200;
     }
 
     private HttpRequest buildPostRequest(String fileName) {

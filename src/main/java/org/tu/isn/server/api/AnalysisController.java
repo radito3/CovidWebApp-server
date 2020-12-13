@@ -41,7 +41,7 @@ public class AnalysisController {
     @GetMapping(path = "/status/{id}")
     public ResponseEntity<String> getStatus(@PathVariable("id") String id) {
         boolean done = service.checkStatus(id);
-        if (done) {
+        if (!done) {
             return ResponseEntity.noContent()
                                  .build();
         }

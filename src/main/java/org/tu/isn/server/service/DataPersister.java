@@ -1,6 +1,8 @@
 package org.tu.isn.server.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.tu.isn.server.datasets.DatasetParser;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -22,7 +24,8 @@ import java.util.function.Predicate;
 @Component
 public class DataPersister {
 
-    //TODO maybe have a bean that provides an input stream to the dataset
+    @Autowired
+    private DatasetParser datasetParser;
 
     public String createCsvFromDataset() {
         return createCsvFromDataset(Collections.emptySet());
@@ -31,9 +34,12 @@ public class DataPersister {
     public String createCsvFromDataset(Set<String> excludedCountries) {
         String inputDataFileName = System.getenv("INPUT_DATA_FILE_NAME") + "-" + UUID.randomUUID().toString();
         Path inputDataFile = Paths.get(inputDataFileName);
-        //provide dataset content
-        transferContentToCsv(null, inputDataFile,
-                             line -> !excludedCountries.contains(line.split(",")[1]));
+        try {
+            transferContentToCsv(datasetParser.getContent(), inputDataFile,
+                                 line -> !excludedCountries.contains(line.split(",")[datasetParser.getCountryNameIndex()]));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return inputDataFileName;
     }
 
@@ -58,7 +64,7 @@ public class DataPersister {
     }
 
     private void writeHeaders(BufferedWriter writer) throws IOException {
-        List<String> headers = List.of("Date", "Country", "Deaths", "Recovered", "Active");
+        List<String> headers = List.of("Date", "Country", "Latitude", "Longitude", "Deaths", "Recovered", "Active");
         for (int i = 0; i < headers.size(); i++) {
             writer.write(headers.get(i));
             if (i != headers.size() - 1) {
@@ -80,7 +86,7 @@ public class DataPersister {
     private void writeDataRow(BufferedReader reader, BufferedWriter writer) throws IOException {
         String line = reader.readLine();
         String[] parts = line.split(",");
-        int partsLimit = 6; //configure this from dataset
+        int partsLimit = datasetParser.getNumberOfFields();
 
         for (int i = 0; i < partsLimit; i++) {
             writer.write(parts[i]);
@@ -88,6 +94,11 @@ public class DataPersister {
                 writer.write(',');
             }
         }
+    }
+
+    private String aggregateMultipleRegionsOfACountry(String line) {
+        //TODO implement
+        return "";
     }
 
 }
