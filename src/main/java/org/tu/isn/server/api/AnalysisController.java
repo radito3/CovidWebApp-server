@@ -38,10 +38,15 @@ public class AnalysisController {
                              .build();
     }
 
-    @GetMapping(path = "/status/{id}", produces = MediaType.TEXT_PLAIN_VALUE)
+    @GetMapping(path = "/status/{id}")
     public ResponseEntity<String> getStatus(@PathVariable("id") String id) {
         boolean done = service.checkStatus(id);
-        return ResponseEntity.ok(done ? "done" : "processing");
+        if (done) {
+            return ResponseEntity.noContent()
+                                 .build();
+        }
+        return ResponseEntity.status(HttpStatus.CREATED)
+                             .build();
     }
 
 }
