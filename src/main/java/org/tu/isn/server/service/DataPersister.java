@@ -76,18 +76,17 @@ public class DataPersister {
 
     private void writeData(BufferedReader reader, BufferedWriter writer, Predicate<String> countryFilter) throws IOException {
         for (String line = reader.readLine(); line != null; line = reader.readLine()) {
-            if (countryFilter.test(line)) {
-                writeDataRow(reader, writer);
+            String countryWithoutRegion = stripRegionFromCountry(line);
+            if (countryFilter.test(countryWithoutRegion)) {
+                writeDataRow(countryWithoutRegion, writer);
                 writer.newLine();
             }
         }
     }
 
-    private void writeDataRow(BufferedReader reader, BufferedWriter writer) throws IOException {
-        String line = reader.readLine();
+    private void writeDataRow(String line, BufferedWriter writer) throws IOException {
         String[] parts = line.split(",");
         int partsLimit = datasetParser.getNumberOfFields();
-
         for (int i = 0; i < partsLimit; i++) {
             writer.write(parts[i]);
             if (i != partsLimit - 1) {
@@ -96,9 +95,11 @@ public class DataPersister {
         }
     }
 
-    private String aggregateMultipleRegionsOfACountry(String line) {
-        //TODO implement
-        return "";
+    private String stripRegionFromCountry(String line) {
+        if (line.contains("(")) {
+            return line.substring(0, line.indexOf('(')).stripTrailing();
+        }
+        return line;
     }
 
 }

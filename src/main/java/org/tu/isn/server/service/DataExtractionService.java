@@ -40,12 +40,11 @@ public class DataExtractionService {
         int totalBatches = -1;
         try {
             long countries = processFileContent(inputFileName, reader -> reader.lines()
-                                                                               .skip(1)
                                                                                .map(line -> line.split(",")[datasetParser.getCountryNameIndex()])
                                                                                .distinct()
                                                                                .count());
-            long outputFileLines = processFileContent(outputFileName, reader -> reader.lines().skip(1).count());
-            long inputFileLines = processFileContent(inputFileName, reader -> reader.lines().skip(1).count());
+            long outputFileLines = processFileContent(outputFileName, reader -> reader.lines().count());
+            long inputFileLines = processFileContent(inputFileName, reader -> reader.lines().count());
 
             int batchLen = 10 * Math.toIntExact(countries);
             long daysTotalPerCountry = (outputFileLines + inputFileLines) / countries;
@@ -94,12 +93,11 @@ public class DataExtractionService {
         int totalBatches = -1;
         try {
             long countries = processFileContent(inputFileName, reader -> reader.lines()
-                                                                               .skip(1)
                                                                                .map(line -> line.split(",")[datasetParser.getCountryNameIndex()])
                                                                                .distinct()
                                                                                .count());
-            long outputFileLines = processFileContent(outputFileName, reader -> reader.lines().skip(1).count());
-            long inputFileLines = processFileContent(inputFileName, reader -> reader.lines().skip(1).count());
+            long outputFileLines = processFileContent(outputFileName, reader -> reader.lines().count());
+            long inputFileLines = processFileContent(inputFileName, reader -> reader.lines().count());
             
             int batchLen = (int) (10 * aggregateType.getDaysMapped() * countries);
             long daysTotal = outputFileLines + inputFileLines;
@@ -160,7 +158,7 @@ public class DataExtractionService {
             int countryLinesCounter = countryDataAggregationCounters.computeIfAbsent(country, k -> new AtomicInteger(0))
                                                                     .incrementAndGet();
             StringBuilder aggregatedLines = countryAggregatedLines.computeIfAbsent(country, k -> new StringBuilder())
-                                                                 .append(line);
+                                                                  .append(line);
 
             if (countryLinesCounter != daysToAggregate) {
                 aggregatedLines.append('+');
@@ -215,12 +213,10 @@ public class DataExtractionService {
         int totalBatches = -1;
         try {
             long presentDaysForCountry = processFileContent(inputFileName, reader -> reader.lines()
-                                                                                          .skip(1)
-                                                                                          .map(line -> line.split(",")[datasetParser.getCountryNameIndex()])
-                                                                                          .filter(country::equals)
-                                                                                          .count());
+                                                                                           .map(line -> line.split(",")[datasetParser.getCountryNameIndex()])
+                                                                                           .filter(country::equals)
+                                                                                           .count());
             long predictedDaysForCountry = processFileContent(outputFileName, reader -> reader.lines()
-                                                                                              .skip(1)
                                                                                               .map(line -> line.split(",")[datasetParser.getCountryNameIndex()])
                                                                                               .filter(country::equals)
                                                                                               .count());
@@ -278,9 +274,9 @@ public class DataExtractionService {
     }
 
     private <T> T processFileContent(String fileName, FileContentProcessor<T> processor) throws IOException {
-        Path outputDataFile = Paths.get(fileName);
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
-                    Files.newInputStream(outputDataFile), StandardCharsets.UTF_8))) {
+        Path file = Paths.get(fileName);
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(Files.newInputStream(file), StandardCharsets.UTF_8))) {
+            reader.readLine(); //skip csv headers
             return processor.accept(reader);
         }
     }

@@ -56,9 +56,8 @@ public class DataPaginator {
     }
 
     private void consumeFileLines(String fileName, long offsetFrom, long offsetTo, Consumer<String> consumer) throws IOException {
-        Path outputDataFile = Paths.get(fileName);
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
-                    Files.newInputStream(outputDataFile), StandardCharsets.UTF_8))) {
+        Path file = Paths.get(fileName);
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(Files.newInputStream(file), StandardCharsets.UTF_8))) {
             reader.readLine(); //skip csv headers
             reader.lines()
                   .skip(offsetFrom)
