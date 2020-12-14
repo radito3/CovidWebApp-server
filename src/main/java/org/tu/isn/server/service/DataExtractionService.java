@@ -17,12 +17,12 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import static org.tu.isn.server.util.DataPaginator.consumeFileLines;
 
 @Service
 public class DataExtractionService {
@@ -50,6 +50,9 @@ public class DataExtractionService {
             int batchLen = 10 * Math.toIntExact(countries);
             long daysTotalPerCountry = (outputFileLines + inputFileLines) / countries;
             totalBatches = (int) (daysTotalPerCountry / 10);
+            if (totalBatches == 0) {
+                totalBatches = 1;
+            }
 
             DataPaginator dataPaginator = DataPaginator.builder()
                                                        .setPage(page)
@@ -60,16 +63,7 @@ public class DataExtractionService {
                                                        .setOutputFileName(outputFileName)
                                                        .build();
 
-            data = dataPaginator.getPageOfResources(line -> {
-                String[] parts = line.split(",");
-                return ImmutableTableDataRow.builder()
-                                            .date(parts[datasetParser.getDateIndex()])
-                                            .country(parts[datasetParser.getCountryNameIndex()])
-                                            .deaths(Integer.valueOf(parts[datasetParser.getDeathsIndex()]))
-                                            .recovered(Integer.valueOf(parts[datasetParser.getRecoveredIndex()]))
-                                            .active(Integer.valueOf(parts[datasetParser.getActiveIndex()]))
-                                            .build();
-            });
+            data = dataPaginator.getPageOfResources(this::createTableDataRow);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -79,6 +73,17 @@ public class DataExtractionService {
                                               .headers(List.of("Date", "Country", "Deaths", "Recovered", "Active"))
                                               .resources(data)
                                               .build();
+    }
+
+    private TableDataRow createTableDataRow(String line) {
+        String[] parts = line.split(",");
+        return ImmutableTableDataRow.builder()
+                                    .date(parts[datasetParser.getDateIndex()])
+                                    .country(parts[datasetParser.getCountryNameIndex()])
+                                    .deaths(Integer.valueOf(parts[datasetParser.getDeathsIndex()]))
+                                    .recovered(Integer.valueOf(parts[datasetParser.getRecoveredIndex()]))
+                                    .active(Integer.valueOf(parts[datasetParser.getActiveIndex()]))
+                                    .build();
     }
 
     public HeatmapResponseCovidData extractHeatmapData(String operationId, int page, String aggregateBy) {
@@ -99,50 +104,26 @@ public class DataExtractionService {
             int batchLen = (int) (10 * aggregateType.getDaysMapped() * countries);
             long daysTotal = outputFileLines + inputFileLines;
             totalBatches = (int) (daysTotal / batchLen);
+            if (totalBatches == 0) {
+                totalBatches = 1;
+            }
 
+            DataPaginator dataPaginator = DataPaginator.builder()
+                                                       .setPage(page)
+                                                       .setBatchLen(batchLen)
+                                                       .setInputLimit(inputFileLines)
+                                                       .setOutputLimit(outputFileLines)
+                                                       .setInputFileName(inputFileName)
+                                                       .setOutputFileName(outputFileName)
+                                                       .build();
             if (aggregateType == AggregateType.DAY) {
-                DataPaginator dataPaginator = DataPaginator.builder()
-                                                           .setPage(page)
-                                                           .setBatchLen(batchLen)
-                                                           .setInputLimit(inputFileLines)
-                                                           .setOutputLimit(outputFileLines)
-                                                           .setInputFileName(inputFileName)
-                                                           .setOutputFileName(outputFileName)
-                                                           .build();
-                data = dataPaginator.getPageOfResources(line -> {
-                    String[] parts = line.split(",");
-                    int deaths = Integer.parseInt(parts[datasetParser.getDeathsIndex()]);
-                    int recovered = Integer.parseInt(parts[datasetParser.getRecoveredIndex()]);
-                    int active = Integer.parseInt(parts[datasetParser.getActiveIndex()]);
-                    double lat = Double.parseDouble(parts[datasetParser.getCountryCoordinateLatIndex()]);
-                    double lon = Double.parseDouble(parts[datasetParser.getCountryCoordinateLonIndex()]);
-                    return ImmutableHeatmapDataRow.builder()
-                                                  .coordinates(ImmutableCoordinate.of(lat, lon))
-                                                  .countryName(parts[datasetParser.getCountryNameIndex()])
-                                                  .value(deaths + recovered + active)
-                                                  .build();
-                });
+                data = dataPaginator.getPageOfResources(this::createHeatmapDataRow);
             } else {
-                //TODO finish
-                Map<String, Integer> countryNumDataRows = new HashMap<>();
-
-                long offsetFrom = page == 0 ? 0 : (long) page * batchLen;
-                long offsetTo = page == 0 ? batchLen : (long) (page + 1) * batchLen;
-                if (batchLen > inputFileLines + outputFileLines) {
-                    offsetTo = inputFileLines + outputFileLines;
-                }
-
-                if (offsetFrom < inputFileLines) { //start is within existing data
-                    if (offsetTo > inputFileLines) { //time slice is within both files' data
-                        long additional = offsetTo - inputFileLines;
-//                        consumeFileLines(inputFileName, offsetFrom, inputFileLines, line -> result.add(entryProducer.apply(line)));
-//                        consumeFileLines(outputFileName, 0, additional, line -> result.add(entryProducer.apply(line)));
-                    } else { //time slice is within existing data only
-//                        consumeFileLines(inputFileName, offsetFrom, offsetTo, line -> result.add(entryProducer.apply(line)));
-                    }
-                } else { //time slice is within predicted data only
-//                    consumeFileLines(outputFileName, offsetFrom, offsetTo, line -> result.add(entryProducer.apply(line)));
-                }
+                List<String> lines = getAggregatedLines(countries, aggregateType.getDaysMapped(), dataPaginator);
+                data = lines.stream()
+                            .filter(Objects::nonNull)
+                            .map(this::createHeatmapDataRow)
+                            .collect(Collectors.toList());
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -152,6 +133,79 @@ public class DataExtractionService {
                                                 .totalPages(totalBatches)
                                                 .resources(data)
                                                 .build();
+    }
+
+    private HeatmapDataRow createHeatmapDataRow(String line) {
+        String[] parts = line.split(",");
+        int deaths = Integer.parseInt(parts[datasetParser.getDeathsIndex()]);
+        int recovered = Integer.parseInt(parts[datasetParser.getRecoveredIndex()]);
+        int active = Integer.parseInt(parts[datasetParser.getActiveIndex()]);
+        double lat = Double.parseDouble(parts[datasetParser.getCountryCoordinateLatIndex()]);
+        double lon = Double.parseDouble(parts[datasetParser.getCountryCoordinateLonIndex()]);
+        return ImmutableHeatmapDataRow.builder()
+                                      .coordinates(ImmutableCoordinate.of(lat, lon))
+                                      .countryName(parts[datasetParser.getCountryNameIndex()])
+                                      .value(deaths + recovered + active)
+                                      .build();
+    }
+
+    private List<String> getAggregatedLines(long countries, int daysToAggregate, DataPaginator dataPaginator) throws IOException {
+        Map<String, AtomicInteger> countryDataAggregationCounters = new HashMap<>((int) countries);
+        Map<String, StringBuilder> countryAggregatedLines = new HashMap<>((int) countries);
+
+        return dataPaginator.getPageOfResources(line -> {
+            String[] parts = line.split(",");
+            String country = parts[datasetParser.getCountryNameIndex()];
+
+            int countryLinesCounter = countryDataAggregationCounters.computeIfAbsent(country, k -> new AtomicInteger(0))
+                                                                    .incrementAndGet();
+            StringBuilder aggregatedLines = countryAggregatedLines.computeIfAbsent(country, k -> new StringBuilder())
+                                                                 .append(line);
+
+            if (countryLinesCounter != daysToAggregate) {
+                aggregatedLines.append('+');
+                return null;
+            }
+
+            StringBuilder result = new StringBuilder();
+            int firstNumber = findIndexOfNthOccurance(line, ',', datasetParser.getDeathsIndex()) + 1;
+            String commonDataForCountry = line.substring(0, firstNumber);
+            result.append(commonDataForCountry);
+
+            int sum = Arrays.stream(aggregatedLines.toString().split("\\+"))
+                            .flatMap(innerLine -> Arrays.stream(extractDataToAggregateFromCsvLine(innerLine)))
+                            .mapToInt(Integer::parseInt)
+                            .sum();
+
+            result.append(sum)
+                  .append(',')
+                  .append(0)
+                  .append(',')
+                  .append(0);
+
+            countryDataAggregationCounters.get(country).set(0);
+            aggregatedLines.delete(0, aggregatedLines.length());
+            return result.toString();
+        });
+    }
+
+    private String[] extractDataToAggregateFromCsvLine(String line) {
+        int firstNumber = findIndexOfNthOccurance(line, ',', datasetParser.getDeathsIndex()) + 1;
+        return line.substring(firstNumber)
+                   .split(",");
+    }
+
+    private int findIndexOfNthOccurance(String str, char ch, int n) {
+        int occur = 0;
+        for (int i = 0; i < str.length(); i++) {
+            if (str.charAt(i) == ch) {
+                occur++;
+            }
+            if (occur == n) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     public DiagramResponseCovidData extractDiagramData(String operationId, int page, String country) {
@@ -187,16 +241,7 @@ public class DataExtractionService {
                                                        .setOutputFileName(outputFileName)
                                                        .build();
 
-            data = dataPaginator.getPageOfResources(line -> {
-                String[] parts = line.split(",");
-                int deaths = Integer.parseInt(parts[datasetParser.getDeathsIndex()]);
-                int recovered = Integer.parseInt(parts[datasetParser.getRecoveredIndex()]);
-                int active = Integer.parseInt(parts[datasetParser.getActiveIndex()]);
-                return ImmutableDiagramDataRow.builder()
-                                              .identifier(parts[datasetParser.getDateIndex()])
-                                              .value(deaths + recovered + active)
-                                              .build();
-            });
+            data = dataPaginator.getPageOfResources(this::createDiagramDataRow);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -209,6 +254,17 @@ public class DataExtractionService {
                                                 .totalPages(totalBatches)
                                                 .resources(data)
                                                 .build();
+    }
+
+    private DiagramDataRow createDiagramDataRow(String line) {
+        String[] parts = line.split(",");
+        int deaths = Integer.parseInt(parts[datasetParser.getDeathsIndex()]);
+        int recovered = Integer.parseInt(parts[datasetParser.getRecoveredIndex()]);
+        int active = Integer.parseInt(parts[datasetParser.getActiveIndex()]);
+        return ImmutableDiagramDataRow.builder()
+                                      .identifier(parts[datasetParser.getDateIndex()])
+                                      .value(deaths + recovered + active)
+                                      .build();
     }
 
     private List<Integer> generateOrdinateValueDivisions() {
