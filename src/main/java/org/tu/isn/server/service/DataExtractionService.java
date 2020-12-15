@@ -46,7 +46,7 @@ public class DataExtractionService {
             long outputFileLines = processFileContent(outputFileName, reader -> reader.lines().count());
             long inputFileLines = processFileContent(inputFileName, reader -> reader.lines().count());
 
-            int batchLen = 10 * Math.toIntExact(countries);
+            int batchLen = (int) (10 * countries);
             long daysTotalPerCountry = (outputFileLines + inputFileLines) / countries;
             totalBatches = (int) (daysTotalPerCountry / 10);
             if (totalBatches == 0) {
@@ -99,7 +99,7 @@ public class DataExtractionService {
             long outputFileLines = processFileContent(outputFileName, reader -> reader.lines().count());
             long inputFileLines = processFileContent(inputFileName, reader -> reader.lines().count());
             
-            int batchLen = (int) (10 * aggregateType.getDaysMapped() * countries);
+            int batchLen = (int) (10 * countries);
             long daysTotal = outputFileLines + inputFileLines;
             totalBatches = (int) (daysTotal / batchLen);
             if (totalBatches == 0) {
@@ -155,12 +155,11 @@ public class DataExtractionService {
             String[] parts = line.split(",");
             String country = parts[datasetParser.getCountryNameIndex()];
 
-            int countryLinesCounter = countryDataAggregationCounters.computeIfAbsent(country, k -> new AtomicInteger(0))
-                                                                    .incrementAndGet();
+            AtomicInteger countryLinesCounter = countryDataAggregationCounters.computeIfAbsent(country, k -> new AtomicInteger(0));
             StringBuilder aggregatedLines = countryAggregatedLines.computeIfAbsent(country, k -> new StringBuilder())
                                                                   .append(line);
 
-            if (countryLinesCounter != daysToAggregate) {
+            if (countryLinesCounter.incrementAndGet() != daysToAggregate) {
                 aggregatedLines.append('+');
                 return null;
             }
@@ -181,7 +180,7 @@ public class DataExtractionService {
                   .append(',')
                   .append(0);
 
-            countryDataAggregationCounters.get(country).set(0);
+            countryLinesCounter.set(0);
             aggregatedLines.delete(0, aggregatedLines.length());
             return result.toString();
         });
@@ -244,7 +243,7 @@ public class DataExtractionService {
         return ImmutableDiagramResponseCovidData.builder()
                                                 .abscissaValueName("Time")
                                                 .abscissaValueDivisions(Arrays.asList("Jan", "Feb", "Mar", "Apr", "May"))
-                                                .ordinateValeName("Number of Casualties")
+                                                .ordinateValeName("Number Affected")
                                                 .ordinateValueDivisions(generateOrdinateValueDivisions())
                                                 .currentPage(page)
                                                 .totalPages(totalBatches)
