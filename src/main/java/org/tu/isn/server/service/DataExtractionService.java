@@ -10,6 +10,7 @@ import org.tu.isn.server.util.FileContentProcessor;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -206,6 +207,7 @@ public class DataExtractionService {
     }
 
     public DiagramResponseCovidData extractDiagramData(String operationId, int page, String country) {
+        String countryName = URLDecoder.decode(country, StandardCharsets.UTF_8);
         String inputFileName = INPUT_DATA_FILE_NAME + "-" + operationId;
         String outputFileName = OUTPUT_DATA_FILE_NAME + "-" + operationId;
         List<DiagramDataRow> data = new ArrayList<>();
@@ -213,11 +215,11 @@ public class DataExtractionService {
         try {
             long presentDaysForCountry = processFileContent(inputFileName, reader -> reader.lines()
                                                                                            .map(line -> line.split(",")[datasetParser.getCountryNameIndex()])
-                                                                                           .filter(country::equals)
+                                                                                           .filter(countryName::equals)
                                                                                            .count());
             long predictedDaysForCountry = processFileContent(outputFileName, reader -> reader.lines()
                                                                                               .map(line -> line.split(",")[datasetParser.getCountryNameIndex()])
-                                                                                              .filter(country::equals)
+                                                                                              .filter(countryName::equals)
                                                                                               .count());
 
             int batchLen = 6 * 30;
