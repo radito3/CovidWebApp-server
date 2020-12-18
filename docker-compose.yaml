@@ -1,0 +1,59 @@
+version: '3'
+
+services:
+  web-ui:
+    image: radito3/web-ui:v1
+    build: https://github.com/Boyannik7/CovidWebApp-front-end.git#main
+    container_name: static-site
+    depends_on:
+      - server
+    ports:
+      - "8080:80"
+    networks: 
+      - internal-net
+    environment: 
+      - SERVER_URL=server
+  server:
+    image: radito3/server:v1
+    build: https://github.com/Boyannik7/CovidWebApp-server.git#main
+    container_name: server
+    depends_on:
+      - ml-script
+      - dataset-data
+    networks:
+      - internal-net
+    volumes:
+      - type: volume
+        source: internal-vol
+        target: /app/data
+    environment: 
+      - INPUT_DATA_FILE_NAME=/data/input_data
+      - OUTPUT_DATA_FILE_NAME=/data/output_data
+      - PY_SCRIPT_URL=ml-script
+      - DIAGRAM_VALUES_STEP=5000
+      - DIAGRAM_VALUES_LIMIT=30000
+  ml-script:
+    image: radito3/ml-script:v1
+    build: https://github.com/Boyannik7/CovidWebApp-ML.git#main
+    container_name: ml-script
+    depends_on:
+      - dataset-data
+    networks:
+      - internal-net
+    volumes:
+      - type: volume
+        source: internal-vol
+        target: /data
+  dataset-data:
+    image: radito3/covid-datasets:v1
+    volumes:
+      - type: volume
+        source: internal-vol
+        target: /
+
+networks:
+  internal-net:
+    driver: bridge
+
+volumes:
+  internal-vol:

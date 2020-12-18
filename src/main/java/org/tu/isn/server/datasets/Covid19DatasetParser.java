@@ -49,6 +49,6 @@ public class Covid19DatasetParser implements DatasetParser {
 
     @Override
     public InputStream getContent() throws IOException {
-        return Files.newInputStream(Paths.get("/dataset/full_grouped.csv"));
+        return Files.newInputStream(Paths.get("/data/full_grouped.csv"));
     }
 }
