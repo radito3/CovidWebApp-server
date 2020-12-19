@@ -34,6 +34,8 @@ services:
       - PY_SCRIPT_URL=ml-script
       - DIAGRAM_VALUES_STEP=5000
       - DIAGRAM_VALUES_LIMIT=30000
+      - RATE_LIMIT_PER_HOUR=300
+      - RATE_LIMIT_CACHE_LIFETIME=3
 
   ml-script:
     build: https://github.com/Boyannik7/CovidWebApp-ML.git#main
