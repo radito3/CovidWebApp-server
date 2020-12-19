@@ -3,7 +3,6 @@ version: '3'
 services:
   web-ui:
     build: https://github.com/Boyannik7/CovidWebApp-front-end.git#main
-    container_name: static-site
     depends_on:
       - server
     ports:
