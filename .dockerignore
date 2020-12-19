@@ -5,3 +5,4 @@
 /.idea
 *.md
 **/*mvn*
+docker-compose.yaml
