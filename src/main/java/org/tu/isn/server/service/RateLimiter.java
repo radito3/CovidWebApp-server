@@ -36,12 +36,10 @@ public class RateLimiter implements DisposableBean {
     }
 
     private void resetCachePeriodically() {
-        String rateLimitCacheLifetime = System.getenv("RATE_LIMIT_CACHE_LIFETIME");
-        long rateLimitReset = Long.parseLong(rateLimitCacheLifetime);
         long start = System.nanoTime();
         while (!preDestroy.get()) {
             long current = System.nanoTime();
-            if (TimeUnit.NANOSECONDS.toHours(current - start) >= rateLimitReset) {
+            if (TimeUnit.NANOSECONDS.toHours(current - start) >= 3) {
                 start = current;
                 cache.clear();
             }
