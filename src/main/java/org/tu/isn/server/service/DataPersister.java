@@ -76,9 +76,8 @@ public class DataPersister {
 
     private void writeData(BufferedReader reader, BufferedWriter writer, Predicate<String> countryFilter) throws IOException {
         for (String line = reader.readLine(); line != null; line = reader.readLine()) {
-            String countryWithoutRegion = stripRegionFromCountry(line);
-            if (countryFilter.test(countryWithoutRegion)) {
-                writeDataRow(countryWithoutRegion, writer);
+            if (countryFilter.test(line)) {
+                writeDataRow(line, writer);
                 writer.newLine();
             }
         }
@@ -93,13 +92,6 @@ public class DataPersister {
                 writer.write(',');
             }
         }
-    }
-
-    private String stripRegionFromCountry(String line) {
-        if (line.contains("(")) {
-            return line.substring(0, line.indexOf('(')).stripTrailing();
-        }
-        return line;
     }
 
 }

@@ -19,14 +19,16 @@ public class CovidWebAppServerApplication {
     }
 
     private static class GracefulShutdown extends Thread {
+
+        private final HttpClient client = HttpClient.newBuilder()
+                                                    .version(HttpClient.Version.HTTP_1_1)
+                                                    .build();
+
         @Override
         public void run() {
             try {
-                int statusCode = HttpClient.newBuilder()
-                                           .version(HttpClient.Version.HTTP_1_1)
-                                           .build()
-                                           .send(buildRequest(), HttpResponse.BodyHandlers.discarding())
-                                           .statusCode();
+                int statusCode = client.send(buildShutdownRequest(), HttpResponse.BodyHandlers.discarding())
+                                       .statusCode();
                 if (statusCode / 100 != 2) {
                     System.err.println("Python script didn't exit correctly");
                 }
@@ -35,7 +37,7 @@ public class CovidWebAppServerApplication {
             }
         }
 
-        private HttpRequest buildRequest() {
+        private HttpRequest buildShutdownRequest() {
             return HttpRequest.newBuilder()
                               .POST(HttpRequest.BodyPublishers.noBody())
                               .uri(URI.create(System.getenv("PY_SCRIPT_URL") + "/shutdown"))
