@@ -6,7 +6,7 @@ services:
     depends_on:
       - server
     ports:
-      - "8080:80"
+      - "80:80"
     networks: 
       - external-net
       - internal-net
@@ -14,8 +14,6 @@ services:
       - httpd-config
     secrets:
       - server-certificate
-    environment: 
-      - SERVER_URL=server
 
   server:
     build: https://github.com/Boyannik7/CovidWebApp-server.git#main
@@ -34,7 +32,6 @@ services:
       - DIAGRAM_VALUES_STEP=5000
       - DIAGRAM_VALUES_LIMIT=30000
       - RATE_LIMIT_PER_HOUR=300
-      - RATE_LIMIT_CACHE_LIFETIME=3
 
   ml-script:
     build: https://github.com/Boyannik7/CovidWebApp-ML.git#main

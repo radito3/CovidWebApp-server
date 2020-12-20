@@ -6,3 +6,4 @@
 *.md
 **/*mvn*
 docker-compose.yaml
+LICENSE
