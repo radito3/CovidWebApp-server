@@ -1,4 +1,4 @@
-version: '3'
+version: '3.3'
 
 services:
   web-ui:
@@ -10,8 +10,6 @@ services:
     networks: 
       - external-net
       - internal-net
-    configs:
-      - httpd-config
     secrets:
       - server-certificate
 
@@ -26,9 +24,9 @@ services:
     volumes:
       - internal-vol:/app/data
     environment: 
-      - INPUT_DATA_FILE_NAME=/data/input_data
-      - OUTPUT_DATA_FILE_NAME=/data/output_data
-      - PY_SCRIPT_URL=ml-script
+      - INPUT_DATA_FILE_NAME=data/input_data
+      - OUTPUT_DATA_FILE_NAME=data/output_data
+      - PY_SCRIPT_URL=http://ml-script:8000
       - DIAGRAM_VALUES_STEP=5000
       - DIAGRAM_VALUES_LIMIT=30000
       - RATE_LIMIT_PER_HOUR=300
@@ -42,15 +40,13 @@ services:
       - internal-net
     volumes:
       - internal-vol:/data
+    environment:
+      - OUTPUT_DATA_FILE_NAME=../data/output_data
 
   dataset-data:
     image: radito3/covid-datasets:v1
     volumes:
       - internal-vol:/data
-
-configs:
-  httpd-config:
-    external: true
 
 secrets:
   server-certificate:
