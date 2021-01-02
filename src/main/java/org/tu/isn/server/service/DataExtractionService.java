@@ -35,8 +35,8 @@ public class DataExtractionService {
     private static final String OUTPUT_DATA_FILE_NAME = System.getenv("OUTPUT_DATA_FILE_NAME");
 
     public TableResponseCovidData extractTableData(String operationId, int page) {
-        String inputFileName = INPUT_DATA_FILE_NAME + "-" + operationId;
-        String outputFileName = OUTPUT_DATA_FILE_NAME + "-" + operationId;
+        String inputFileName = INPUT_DATA_FILE_NAME + "_" + operationId;
+        String outputFileName = OUTPUT_DATA_FILE_NAME + "_" + operationId;
         List<TableDataRow> data = new ArrayList<>();
         int totalBatches = -1;
         try {
@@ -88,8 +88,8 @@ public class DataExtractionService {
 
     public HeatmapResponseCovidData extractHeatmapData(String operationId, int page, String aggregateBy) {
         AggregateType aggregateType = AggregateType.of(aggregateBy);
-        String inputFileName = INPUT_DATA_FILE_NAME + "-" + operationId;
-        String outputFileName = OUTPUT_DATA_FILE_NAME + "-" + operationId;
+        String inputFileName = INPUT_DATA_FILE_NAME + "_" + operationId;
+        String outputFileName = OUTPUT_DATA_FILE_NAME + "_" + operationId;
         List<HeatmapDataRow> data = new ArrayList<>();
         int totalBatches = -1;
         try {
@@ -208,8 +208,8 @@ public class DataExtractionService {
 
     public DiagramResponseCovidData extractDiagramData(String operationId, int page, String country) {
         String countryName = URLDecoder.decode(country, StandardCharsets.UTF_8);
-        String inputFileName = INPUT_DATA_FILE_NAME + "-" + operationId;
-        String outputFileName = OUTPUT_DATA_FILE_NAME + "-" + operationId;
+        String inputFileName = INPUT_DATA_FILE_NAME + "_" + operationId;
+        String outputFileName = OUTPUT_DATA_FILE_NAME + "_" + operationId;
         List<DiagramDataRow> data = new ArrayList<>();
         int totalBatches = -1;
         try {
@@ -238,7 +238,10 @@ public class DataExtractionService {
                                                        .setOutputFileName(outputFileName)
                                                        .build();
 
-            data = dataPaginator.getPageOfResources(this::createDiagramDataRow);
+            data = dataPaginator.getPageOfResources(line -> createDiagramDataRowForCountry(line, countryName))
+                                .stream()
+                                .filter(Objects::nonNull)
+                                .collect(Collectors.toList());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -253,8 +256,11 @@ public class DataExtractionService {
                                                 .build();
     }
 
-    private DiagramDataRow createDiagramDataRow(String line) {
+    private DiagramDataRow createDiagramDataRowForCountry(String line, String country) {
         String[] parts = line.split(",");
+        if (!country.equals(parts[datasetParser.getCountryNameIndex()])) {
+            return null;
+        }
         int deaths = Integer.parseInt(parts[datasetParser.getDeathsIndex()]);
         int recovered = Integer.parseInt(parts[datasetParser.getRecoveredIndex()]);
         int active = Integer.parseInt(parts[datasetParser.getActiveIndex()]);

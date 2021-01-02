@@ -8,6 +8,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 
 @SpringBootApplication
 public class CovidWebAppServerApplication {
@@ -27,11 +28,7 @@ public class CovidWebAppServerApplication {
         @Override
         public void run() {
             try {
-                int statusCode = client.send(buildShutdownRequest(), HttpResponse.BodyHandlers.discarding())
-                                       .statusCode();
-                if (statusCode / 100 != 2) {
-                    System.err.println("Python script didn't exit correctly");
-                }
+                client.send(buildShutdownRequest(), HttpResponse.BodyHandlers.discarding());
             } catch (IOException | InterruptedException e) {
                 e.printStackTrace();
             }
@@ -41,6 +38,7 @@ public class CovidWebAppServerApplication {
             return HttpRequest.newBuilder()
                               .POST(HttpRequest.BodyPublishers.noBody())
                               .uri(URI.create(System.getenv("PY_SCRIPT_URL") + "/shutdown"))
+                              .timeout(Duration.ofSeconds(5))
                               .build();
         }
     }

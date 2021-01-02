@@ -32,22 +32,30 @@ public class DataPersister {
     }
 
     public String createCsvFromDataset(Set<String> excludedCountries) {
-        String inputDataFileName = System.getenv("INPUT_DATA_FILE_NAME") + "-" + UUID.randomUUID().toString();
+        String inputDataFileName = System.getenv("INPUT_DATA_FILE_NAME") + "_" + UUID.randomUUID().toString();
         Path inputDataFile = Paths.get(inputDataFileName);
         try {
+            Files.createFile(inputDataFile);
             transferContentToCsv(datasetParser.getContent(), inputDataFile,
                                  line -> !excludedCountries.contains(line.split(",")[datasetParser.getCountryNameIndex()]));
+            return inputDataFileName;
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println(e.getMessage());
+            return null;
         }
-        return inputDataFileName;
     }
 
     public String createCsvFromFile(InputStream content) {
-        String inputDataFileName = System.getenv("INPUT_DATA_FILE_NAME") + "-" + UUID.randomUUID().toString();
+        String inputDataFileName = System.getenv("INPUT_DATA_FILE_NAME") + "_" + UUID.randomUUID().toString();
         Path inputDataFile = Paths.get(inputDataFileName);
-        transferContentToCsv(content, inputDataFile, line -> true);
-        return inputDataFileName;
+        try {
+            Files.createFile(inputDataFile);
+            transferContentToCsv(content, inputDataFile, line -> true);
+            return inputDataFileName;
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+            return null;
+        }
     }
 
     private void transferContentToCsv(InputStream content, Path inputFile, Predicate<String> countryFilter) {

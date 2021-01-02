@@ -22,15 +22,24 @@ public class AnalysisService {
     public String startAnalysisFromJson(RequestData data) {
         if (data == null) {
             String fileName = dataPersister.createCsvFromDataset();
+            if (fileName == null) {
+                return null;
+            }
             return dockerService.callScriptContainer(CallType.START_ANALYSIS, fileName);
         }
         String fileName = dataPersister.createCsvFromDataset(new HashSet<>(data.getExcludedCountries()));
+        if (fileName == null) {
+            return null;
+        }
         return dockerService.callScriptContainer(CallType.START_ANALYSIS, fileName);
     }
 
     public String startAnalysisFromFile(MultipartFile file) {
         try (InputStream content = file.getInputStream()) {
             String fileName = dataPersister.createCsvFromFile(content);
+            if (fileName == null) {
+                return null;
+            }
             return dockerService.callScriptContainer(CallType.START_ANALYSIS, fileName);
         } catch (IOException e) {
             e.printStackTrace();

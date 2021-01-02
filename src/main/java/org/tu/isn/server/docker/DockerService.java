@@ -35,8 +35,7 @@ public class DockerService {
         if (response.statusCode() / 100 != 2) {
             return null;
         }
-        String outputFileName = response.body();
-        return outputFileName.substring(outputFileName.lastIndexOf('-'));
+        return fileName.substring(fileName.lastIndexOf('_') + 1);
     }
 
     private Boolean pollStatus(String id) throws IOException, InterruptedException {
