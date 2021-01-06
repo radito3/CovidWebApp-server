@@ -11,18 +11,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class DataPaginator {
     private final int page;
     private final String inputFileName;
     private final String outputFileName;
     private final int batchLen;
+    private final Predicate<String> filter;
 
     private DataPaginator(Builder builder) {
         page = builder.page;
         inputFileName = builder.inputFileName;
         outputFileName = builder.outputFileName;
         batchLen = builder.batchLen;
+        filter = builder.filter;
     }
 
     public static Builder builder() {
@@ -59,6 +62,7 @@ public class DataPaginator {
         try (BufferedReader reader = Files.newBufferedReader(file)) {
             reader.readLine(); //skip csv headers
             reader.lines()
+                  .filter(filter)
                   .skip(offsetFrom)
                   .limit(offsetTo - offsetFrom)
                   .forEach(consumer);
@@ -77,6 +81,11 @@ public class DataPaginator {
         private String inputFileName;
         private String outputFileName;
         private int batchLen;
+        private Predicate<String> filter;
+
+        public Builder() {
+            filter = o -> true;
+        }
 
         public Builder setPage(int page) {
             this.page = page;
@@ -95,6 +104,11 @@ public class DataPaginator {
 
         public Builder setBatchLen(int batchLen) {
             this.batchLen = batchLen;
+            return this;
+        }
+
+        public Builder setFilter(Predicate<String> filter) {
+            this.filter = filter;
             return this;
         }
 

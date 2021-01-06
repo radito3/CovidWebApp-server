@@ -15,12 +15,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Map;
-import java.util.Objects;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -113,11 +110,37 @@ public class DataExtractionService {
             if (aggregateType == AggregateType.DAY) {
                 data = dataPaginator.getPageOfResources(this::createHeatmapDataRow);
             } else {
-                List<String> lines = getAggregatedLines(countries, aggregateType.getDaysMapped(), dataPaginator);
-                data = lines.stream()
-                            .filter(Objects::nonNull)
-                            .map(this::createHeatmapDataRow)
-                            .collect(Collectors.toList());
+                //FIXME need to loop through batchLen * aggregateType.getDaysMapped() days of content
+                // for i := 0; i < 10; i++ ->
+                // for country in countries {
+                //      read 10 * days_mapped entries for country
+                //      aggregate those entries
+                //      add to result
+                // }
+                Map<String, List<String>> aggregate = new HashMap<>((int) countries);
+                dataPaginator.getPageOfResources(line -> {
+                                                    String[] parts = line.split(",");
+                                                    aggregate.computeIfAbsent(parts[datasetParser.getCountryNameIndex()],
+                                                                              k -> new ArrayList<>())
+                                                             .add(line);
+                                                    return null;
+                                                 });
+
+                for (List<String> aggregatedLines : aggregate.values()) {
+                    HeatmapDataRow dataRow = createHeatmapDataRow(aggregatedLines.get(0));
+                    int sum = aggregatedLines.stream()
+                                             .skip(1)
+                                             .mapToInt(line -> {
+                                                 String[] parts = line.split(",");
+                                                 int deaths = Integer.parseInt(parts[datasetParser.getDeathsIndex()]);
+                                                 int recovered = Integer.parseInt(parts[datasetParser.getRecoveredIndex()]);
+                                                 int active = Integer.parseInt(parts[datasetParser.getActiveIndex()]);
+                                                 return deaths + recovered + active;
+                                             })
+                                             .sum();
+                    data.add(ImmutableHeatmapDataRow.copyOf(dataRow)
+                                                    .withValue(dataRow.getValue() + sum));
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -141,64 +164,6 @@ public class DataExtractionService {
                                       .countryName(parts[datasetParser.getCountryNameIndex()])
                                       .value(deaths + recovered + active)
                                       .build();
-    }
-
-    private List<String> getAggregatedLines(long countries, int daysToAggregate, DataPaginator dataPaginator) throws IOException {
-        Map<String, AtomicInteger> countryDataAggregationCounters = new HashMap<>((int) countries);
-        Map<String, StringBuilder> countryAggregatedLines = new HashMap<>((int) countries);
-
-        return dataPaginator.getPageOfResources(line -> {
-            String[] parts = line.split(",");
-            String country = parts[datasetParser.getCountryNameIndex()];
-
-            AtomicInteger countryLinesCounter = countryDataAggregationCounters.computeIfAbsent(country, k -> new AtomicInteger(0));
-            StringBuilder aggregatedLines = countryAggregatedLines.computeIfAbsent(country, k -> new StringBuilder())
-                                                                  .append(line);
-
-            if (countryLinesCounter.incrementAndGet() != daysToAggregate) {
-                aggregatedLines.append('+');
-                return null;
-            }
-
-            StringBuilder result = new StringBuilder();
-            int firstNumber = findIndexOfNthOccurance(line, ',', datasetParser.getDeathsIndex()) + 1;
-            String commonDataForCountry = line.substring(0, firstNumber);
-            result.append(commonDataForCountry);
-
-            int sum = Arrays.stream(aggregatedLines.toString().split("\\+"))
-                            .flatMap(innerLine -> Arrays.stream(extractDataToAggregateFromCsvLine(innerLine)))
-                            .mapToInt(Integer::parseInt)
-                            .sum();
-
-            result.append(sum)
-                  .append(',')
-                  .append(0)
-                  .append(',')
-                  .append(0);
-
-            countryLinesCounter.set(0);
-            aggregatedLines.delete(0, aggregatedLines.length());
-            return result.toString();
-        });
-    }
-
-    private String[] extractDataToAggregateFromCsvLine(String line) {
-        int firstNumber = findIndexOfNthOccurance(line, ',', datasetParser.getDeathsIndex()) + 1;
-        return line.substring(firstNumber)
-                   .split(",");
-    }
-
-    private int findIndexOfNthOccurance(String str, char ch, int n) {
-        int occur = 0;
-        for (int i = 0; i < str.length(); i++) {
-            if (str.charAt(i) == ch) {
-                occur++;
-            }
-            if (occur == n) {
-                return i;
-            }
-        }
-        return -1;
     }
 
     public DiagramResponseCovidData extractDiagramData(String operationId, int page, String country) {
@@ -229,12 +194,13 @@ public class DataExtractionService {
                                                        .setBatchLen(batchLen)
                                                        .setInputFileName(inputFileName)
                                                        .setOutputFileName(outputFileName)
+                                                       .setFilter(line -> {
+                                                           String[] parts = line.split(",");
+                                                           return countryName.replaceAll("\\*", "")
+                                                                             .equals(parts[datasetParser.getCountryNameIndex()]);
+                                                       })
                                                        .build();
-
-            data = dataPaginator.getPageOfResources(line -> createDiagramDataRowForCountry(line, countryName))
-                                .stream()
-                                .filter(Objects::nonNull)
-                                .collect(Collectors.toList());
+            data = dataPaginator.getPageOfResources(this::createDiagramDataRowForCountry);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -249,12 +215,8 @@ public class DataExtractionService {
                                                 .build();
     }
 
-    private DiagramDataRow createDiagramDataRowForCountry(String line, String country) {
+    private DiagramDataRow createDiagramDataRowForCountry(String line) {
         String[] parts = line.split(",");
-        //FIXME
-        if (!country.equals(parts[datasetParser.getCountryNameIndex()])) {
-            return null;
-        }
         int deaths = Integer.parseInt(parts[datasetParser.getDeathsIndex()]);
         int recovered = Integer.parseInt(parts[datasetParser.getRecoveredIndex()]);
         int active = Integer.parseInt(parts[datasetParser.getActiveIndex()]);
