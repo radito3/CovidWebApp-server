@@ -17,16 +17,12 @@ public class DataPaginator {
     private final String inputFileName;
     private final String outputFileName;
     private final int batchLen;
-    private final long inputLimit;
-    private final long outputLimit;
 
     private DataPaginator(Builder builder) {
         page = builder.page;
         inputFileName = builder.inputFileName;
         outputFileName = builder.outputFileName;
         batchLen = builder.batchLen;
-        inputLimit = builder.inputLimit;
-        outputLimit = builder.outputLimit;
     }
 
     public static Builder builder() {
@@ -37,6 +33,9 @@ public class DataPaginator {
         List<T> result = new ArrayList<>();
         long offsetFrom = page == 0 ? 0 : (long) page * batchLen;
         long offsetTo = page == 0 ? batchLen : (long) (page + 1) * batchLen;
+        long inputLimit = countLines(inputFileName);
+        long outputLimit = countLines(outputFileName);
+
         if (batchLen > inputLimit + outputLimit) {
             offsetTo = inputLimit + outputLimit;
         }
@@ -57,7 +56,7 @@ public class DataPaginator {
 
     private void consumeFileLines(String fileName, long offsetFrom, long offsetTo, Consumer<String> consumer) throws IOException {
         Path file = Paths.get(fileName);
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(Files.newInputStream(file), StandardCharsets.UTF_8))) {
+        try (BufferedReader reader = Files.newBufferedReader(file)) {
             reader.readLine(); //skip csv headers
             reader.lines()
                   .skip(offsetFrom)
@@ -66,13 +65,18 @@ public class DataPaginator {
         }
     }
 
+    private long countLines(String fileName) throws IOException {
+        Path file = Paths.get(fileName);
+        return Files.lines(file)
+                    .skip(1)
+                    .count();
+    }
+
     public static class Builder {
         private int page;
         private String inputFileName;
         private String outputFileName;
         private int batchLen;
-        private long inputLimit;
-        private long outputLimit;
 
         public Builder setPage(int page) {
             this.page = page;
@@ -91,16 +95,6 @@ public class DataPaginator {
 
         public Builder setBatchLen(int batchLen) {
             this.batchLen = batchLen;
-            return this;
-        }
-
-        public Builder setInputLimit(long inputLimit) {
-            this.inputLimit = inputLimit;
-            return this;
-        }
-
-        public Builder setOutputLimit(long outputLimit) {
-            this.outputLimit = outputLimit;
             return this;
         }
 

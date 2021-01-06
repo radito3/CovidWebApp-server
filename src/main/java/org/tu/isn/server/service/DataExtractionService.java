@@ -9,7 +9,6 @@ import org.tu.isn.server.util.FileContentProcessor;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -57,8 +56,6 @@ public class DataExtractionService {
             DataPaginator dataPaginator = DataPaginator.builder()
                                                        .setPage(page)
                                                        .setBatchLen(batchLen)
-                                                       .setInputLimit(inputFileLines)
-                                                       .setOutputLimit(outputFileLines)
                                                        .setInputFileName(inputFileName)
                                                        .setOutputFileName(outputFileName)
                                                        .build();
@@ -102,7 +99,7 @@ public class DataExtractionService {
             
             int batchLen = (int) (10 * countries);
             long daysTotal = outputFileLines + inputFileLines;
-            totalBatches = (int) (daysTotal / batchLen);
+            totalBatches = (int) (daysTotal / batchLen) / aggregateType.getDaysMapped();
             if (totalBatches == 0) {
                 totalBatches = 1;
             }
@@ -110,8 +107,6 @@ public class DataExtractionService {
             DataPaginator dataPaginator = DataPaginator.builder()
                                                        .setPage(page)
                                                        .setBatchLen(batchLen)
-                                                       .setInputLimit(inputFileLines)
-                                                       .setOutputLimit(outputFileLines)
                                                        .setInputFileName(inputFileName)
                                                        .setOutputFileName(outputFileName)
                                                        .build();
@@ -225,15 +220,13 @@ public class DataExtractionService {
             int batchLen = 6 * 30;
             long totalDays = presentDaysForCountry + predictedDaysForCountry;
             totalBatches = (int) (totalDays / batchLen);
-            if (batchLen > totalDays) {
+            if (batchLen >= totalDays) {
                 totalBatches = 1;
             }
 
             DataPaginator dataPaginator = DataPaginator.builder()
                                                        .setPage(page)
                                                        .setBatchLen(batchLen)
-                                                       .setInputLimit(presentDaysForCountry)
-                                                       .setOutputLimit(predictedDaysForCountry)
                                                        .setInputFileName(inputFileName)
                                                        .setOutputFileName(outputFileName)
                                                        .build();
@@ -247,7 +240,7 @@ public class DataExtractionService {
         }
         return ImmutableDiagramResponseCovidData.builder()
                                                 .abscissaValueName("Time")
-                                                .abscissaValueDivisions(Arrays.asList("Jan", "Feb", "Mar", "Apr", "May"))
+                                                .abscissaValueDivisions(List.of("Jan", "Feb", "Mar", "Apr", "May", "June"))
                                                 .ordinateValeName("Number Affected")
                                                 .ordinateValueDivisions(generateOrdinateValueDivisions())
                                                 .currentPage(page)
@@ -258,6 +251,7 @@ public class DataExtractionService {
 
     private DiagramDataRow createDiagramDataRowForCountry(String line, String country) {
         String[] parts = line.split(",");
+        //FIXME
         if (!country.equals(parts[datasetParser.getCountryNameIndex()])) {
             return null;
         }
@@ -275,14 +269,14 @@ public class DataExtractionService {
         String valuesLimit = System.getenv("DIAGRAM_VALUES_LIMIT");
         return IntStream.iterate(0, i -> i + Integer.parseInt(valueDivisionsStep))
                         .skip(1)
-                        .limit(Long.parseLong(valuesLimit))
+                        .takeWhile(i -> i <= Integer.parseInt(valuesLimit))
                         .boxed()
                         .collect(Collectors.toList());
     }
 
     private <T> T processFileContent(String fileName, FileContentProcessor<T> processor) throws IOException {
         Path file = Paths.get(fileName);
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(Files.newInputStream(file), StandardCharsets.UTF_8))) {
+        try (BufferedReader reader = Files.newBufferedReader(file)) {
             reader.readLine(); //skip csv headers
             return processor.accept(reader);
         }
