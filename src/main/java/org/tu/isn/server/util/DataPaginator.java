@@ -73,6 +73,7 @@ public class DataPaginator {
         Path file = Paths.get(fileName);
         return Files.lines(file)
                     .skip(1)
+//                    .filter(filter)
                     .count();
     }
 

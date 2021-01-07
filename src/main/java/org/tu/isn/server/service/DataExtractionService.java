@@ -15,8 +15,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Map;
-import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -87,28 +85,28 @@ public class DataExtractionService {
         List<HeatmapDataRow> data = new ArrayList<>();
         int totalBatches = -1;
         try {
-            long countries = processFileContent(inputFileName, reader -> reader.lines()
-                                                                               .map(line -> line.split(",")[datasetParser.getCountryNameIndex()])
-                                                                               .distinct()
-                                                                               .count());
+            List<String> countries = processFileContent(inputFileName, reader -> reader.lines()
+                                                                                       .map(line -> line.split(",")[datasetParser.getCountryNameIndex()])
+                                                                                       .distinct()
+                                                                                       .collect(Collectors.toList()));
             long outputFileLines = processFileContent(outputFileName, reader -> reader.lines().count());
             long inputFileLines = processFileContent(inputFileName, reader -> reader.lines().count());
             
-            int batchLen = (int) (10 * countries);
+            int batchLen = 10 * countries.size();
             long daysTotal = outputFileLines + inputFileLines;
             totalBatches = (int) (daysTotal / batchLen) / aggregateType.getDaysMapped();
             if (totalBatches == 0) {
                 totalBatches = 1;
             }
 
-            DataPaginator dataPaginator = DataPaginator.builder()
-                                                       .setPage(page)
-                                                       .setBatchLen(batchLen)
-                                                       .setInputFileName(inputFileName)
-                                                       .setOutputFileName(outputFileName)
-                                                       .build();
+            DataPaginator.Builder builder = DataPaginator.builder()
+                                                         .setPage(page)
+                                                         .setInputFileName(inputFileName)
+                                                         .setOutputFileName(outputFileName);
             if (aggregateType == AggregateType.DAY) {
-                data = dataPaginator.getPageOfResources(this::createHeatmapDataRow);
+                data = builder.setBatchLen(batchLen)
+                              .build()
+                              .getPageOfResources(this::createHeatmapDataRow);
             } else {
                 //FIXME need to loop through batchLen * aggregateType.getDaysMapped() days of content
                 // for i := 0; i < 10; i++ ->
@@ -117,29 +115,21 @@ public class DataExtractionService {
                 //      aggregate those entries
                 //      add to result
                 // }
-                Map<String, List<String>> aggregate = new HashMap<>((int) countries);
-                dataPaginator.getPageOfResources(line -> {
-                                                    String[] parts = line.split(",");
-                                                    aggregate.computeIfAbsent(parts[datasetParser.getCountryNameIndex()],
-                                                                              k -> new ArrayList<>())
-                                                             .add(line);
-                                                    return null;
-                                                 });
-
-                for (List<String> aggregatedLines : aggregate.values()) {
-                    HeatmapDataRow dataRow = createHeatmapDataRow(aggregatedLines.get(0));
-                    int sum = aggregatedLines.stream()
-                                             .skip(1)
-                                             .mapToInt(line -> {
-                                                 String[] parts = line.split(",");
-                                                 int deaths = Integer.parseInt(parts[datasetParser.getDeathsIndex()]);
-                                                 int recovered = Integer.parseInt(parts[datasetParser.getRecoveredIndex()]);
-                                                 int active = Integer.parseInt(parts[datasetParser.getActiveIndex()]);
-                                                 return deaths + recovered + active;
-                                             })
-                                             .sum();
-                    data.add(ImmutableHeatmapDataRow.copyOf(dataRow)
-                                                    .withValue(dataRow.getValue() + sum));
+                for (String country : countries) {
+                    DataPaginator dataPaginator = builder.setBatchLen(10 * aggregateType.getDaysMapped())
+                                                         .setFilter(line -> {
+                                                             String[] parts = line.split(",");
+                                                             return country.equals(parts[datasetParser.getCountryNameIndex()].replaceAll("\\*", ""));
+                                                         })
+                                                         .build();
+                    List<HeatmapDataRow> aggregate = dataPaginator.getPageOfResources(this::createHeatmapDataRow);
+                    HeatmapDataRow first = aggregate.get(0);
+                    int sum = first.getValue();
+                    for (int i = 1; i < aggregate.size(); i++) {
+                        sum += aggregate.get(i).getValue();
+                    }
+                    data.add(ImmutableHeatmapDataRow.copyOf(first)
+                                                    .withValue(sum));
                 }
             }
         } catch (IOException e) {
@@ -196,8 +186,7 @@ public class DataExtractionService {
                                                        .setOutputFileName(outputFileName)
                                                        .setFilter(line -> {
                                                            String[] parts = line.split(",");
-                                                           return countryName.replaceAll("\\*", "")
-                                                                             .equals(parts[datasetParser.getCountryNameIndex()]);
+                                                           return countryName.equals(parts[datasetParser.getCountryNameIndex()].replaceAll("\\*", ""));
                                                        })
                                                        .build();
             data = dataPaginator.getPageOfResources(this::createDiagramDataRowForCountry);
