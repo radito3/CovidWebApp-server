@@ -14,10 +14,18 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Month;
+import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
+import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 @Service
 public class DataExtractionService {
@@ -38,13 +46,13 @@ public class DataExtractionService {
                                                                                .map(line -> line.split(",")[datasetParser.getCountryNameIndex()])
                                                                                .distinct()
                                                                                .count());
-            long outputFileLines = processFileContent(outputFileName, reader -> reader.lines().count());
-            long inputFileLines = processFileContent(inputFileName, reader -> reader.lines().count());
+            long outputFileLines = countLines(outputFileName);
+            long inputFileLines = countLines(inputFileName);
 
             int batchLen = (int) (10 * countries);
-            long daysTotalPerCountry = (outputFileLines + inputFileLines) / countries;
-            totalBatches = (int) (daysTotalPerCountry / 10);
-            if (totalBatches == 0) {
+            long totalLines = outputFileLines + inputFileLines;
+            totalBatches = (int) (totalLines / batchLen);
+            if (batchLen >= totalLines) {
                 totalBatches = 1;
             }
 
@@ -89,47 +97,54 @@ public class DataExtractionService {
                                                                                        .map(line -> line.split(",")[datasetParser.getCountryNameIndex()])
                                                                                        .distinct()
                                                                                        .collect(Collectors.toList()));
-            long outputFileLines = processFileContent(outputFileName, reader -> reader.lines().count());
-            long inputFileLines = processFileContent(inputFileName, reader -> reader.lines().count());
+            long outputFileLines = countLines(outputFileName);
+            long inputFileLines = countLines(inputFileName);
             
-            int batchLen = 10 * countries.size();
-            long daysTotal = outputFileLines + inputFileLines;
-            totalBatches = (int) (daysTotal / batchLen) / aggregateType.getDaysMapped();
+            int batchLen = 3 * aggregateType.getDaysMapped() * countries.size();
+            long totalLines = outputFileLines + inputFileLines;
+            totalBatches = (int) (totalLines / batchLen);
             if (totalBatches == 0) {
                 totalBatches = 1;
             }
 
-            DataPaginator.Builder builder = DataPaginator.builder()
-                                                         .setPage(page)
-                                                         .setInputFileName(inputFileName)
-                                                         .setOutputFileName(outputFileName);
             if (aggregateType == AggregateType.DAY) {
-                data = builder.setBatchLen(batchLen)
-                              .build()
-                              .getPageOfResources(this::createHeatmapDataRow);
+                DataPaginator dataPaginator = DataPaginator.builder()
+                                                           .setPage(page)
+                                                           .setBatchLen(batchLen)
+                                                           .setInputFileName(inputFileName)
+                                                           .setOutputFileName(outputFileName)
+                                                           .build();
+
+                data = dataPaginator.getPageOfResources(this::createHeatmapDataRow);
             } else {
-                //FIXME need to loop through batchLen * aggregateType.getDaysMapped() days of content
-                // for i := 0; i < 10; i++ ->
-                // for country in countries {
-                //      read 10 * days_mapped entries for country
-                //      aggregate those entries
-                //      add to result
-                // }
+                long offsetFrom = page == 0 ? 0 : (long) page * batchLen;
+
+                //FIXME too much indentation -> extract into methods OR refactor data paginator
                 for (String country : countries) {
-                    DataPaginator dataPaginator = builder.setBatchLen(10 * aggregateType.getDaysMapped())
-                                                         .setFilter(line -> {
-                                                             String[] parts = line.split(",");
-                                                             return country.equals(parts[datasetParser.getCountryNameIndex()].replaceAll("\\*", ""));
-                                                         })
-                                                         .build();
-                    List<HeatmapDataRow> aggregate = dataPaginator.getPageOfResources(this::createHeatmapDataRow);
-                    HeatmapDataRow first = aggregate.get(0);
-                    int sum = first.getValue();
-                    for (int i = 1; i < aggregate.size(); i++) {
-                        sum += aggregate.get(i).getValue();
+                    for (long i = 0; i < 3; i++) {
+                        Predicate<String> lineFilter = line -> {
+                            String[] parts = line.split(",");
+                            return country.replaceAll("\\*", "")
+                                          .equals(parts[datasetParser.getCountryNameIndex()].replaceAll("\\*", ""));
+                        };
+
+                        long start = i * aggregateType.getDaysMapped();
+                        long limit = aggregateType.getDaysMapped();
+
+                        List<HeatmapDataRow> innerResult = consumeFileLines(inputFileName, outputFileName,
+                                                                            offsetFrom, start, limit,
+                                                                            lineFilter, this::createHeatmapDataRow);
+                        if (innerResult.isEmpty()) {
+                            continue;
+                        }
+                        HeatmapDataRow first = innerResult.get(0);
+                        int sum = first.getValue();
+                        for (int j = 1; j < innerResult.size(); j++) {
+                            sum += innerResult.get(j).getValue();
+                        }
+                        data.add(ImmutableHeatmapDataRow.copyOf(first)
+                                                        .withValue(sum));
                     }
-                    data.add(ImmutableHeatmapDataRow.copyOf(first)
-                                                    .withValue(sum));
                 }
             }
         } catch (IOException e) {
@@ -156,6 +171,26 @@ public class DataExtractionService {
                                       .build();
     }
 
+    //FIXME hideous amount of parameters...
+    private <T> List<T> consumeFileLines(String fileNameIn, String fileNameOut,
+                                  long offsetFrom, long start, long limit,
+                                  Predicate<String> filter, Function<String, ? extends T> entryProducer) throws IOException {
+        Path inputFile = Paths.get(fileNameIn);
+        Path outputFile = Paths.get(fileNameOut);
+
+        try (BufferedReader inputReader = Files.newBufferedReader(inputFile);
+            BufferedReader outputReader = Files.newBufferedReader(outputFile)) {
+
+            return Stream.concat(inputReader.lines().skip(1), outputReader.lines().skip(1))
+                         .skip(offsetFrom)
+                         .filter(filter)
+                         .skip(start)
+                         .limit(limit)
+                         .map(entryProducer)
+                         .collect(Collectors.toList());
+        }
+    }
+
     public DiagramResponseCovidData extractDiagramData(String operationId, int page, String country) {
         String countryName = URLDecoder.decode(country, StandardCharsets.UTF_8);
         String inputFileName = INPUT_DATA_FILE_NAME + "_" + operationId;
@@ -165,17 +200,19 @@ public class DataExtractionService {
         try {
             long presentDaysForCountry = processFileContent(inputFileName, reader -> reader.lines()
                                                                                            .map(line -> line.split(",")[datasetParser.getCountryNameIndex()])
+                                                                                           .map(countryStr -> countryStr.replaceAll("\\*", ""))
                                                                                            .filter(countryName::equals)
                                                                                            .count());
             long predictedDaysForCountry = processFileContent(outputFileName, reader -> reader.lines()
                                                                                               .map(line -> line.split(",")[datasetParser.getCountryNameIndex()])
+                                                                                              .map(countryStr -> countryStr.replaceAll("\\*", ""))
                                                                                               .filter(countryName::equals)
                                                                                               .count());
 
             int batchLen = 6 * 30;
-            long totalDays = presentDaysForCountry + predictedDaysForCountry;
-            totalBatches = (int) (totalDays / batchLen);
-            if (batchLen >= totalDays) {
+            long totalDaysForCountry = presentDaysForCountry + predictedDaysForCountry;
+            totalBatches = (int) (totalDaysForCountry / batchLen);
+            if (batchLen >= totalDaysForCountry) {
                 totalBatches = 1;
             }
 
@@ -186,16 +223,18 @@ public class DataExtractionService {
                                                        .setOutputFileName(outputFileName)
                                                        .setFilter(line -> {
                                                            String[] parts = line.split(",");
-                                                           return countryName.equals(parts[datasetParser.getCountryNameIndex()].replaceAll("\\*", ""));
+                                                           String countryStr = parts[datasetParser.getCountryNameIndex()];
+                                                           return countryName.equals(countryStr.replaceAll("\\*", ""));
                                                        })
                                                        .build();
+
             data = dataPaginator.getPageOfResources(this::createDiagramDataRowForCountry);
         } catch (IOException e) {
             e.printStackTrace();
         }
         return ImmutableDiagramResponseCovidData.builder()
                                                 .abscissaValueName("Time")
-                                                .abscissaValueDivisions(List.of("Jan", "Feb", "Mar", "Apr", "May", "June"))
+                                                .abscissaValueDivisions(generateAbscissaValueDivisions(data.get(0)))
                                                 .ordinateValeName("Number Affected")
                                                 .ordinateValueDivisions(generateOrdinateValueDivisions())
                                                 .currentPage(page)
@@ -225,12 +264,29 @@ public class DataExtractionService {
                         .collect(Collectors.toList());
     }
 
+    private List<String> generateAbscissaValueDivisions(DiagramDataRow firstEntry) {
+        int startingMonth = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+                                             .parse(firstEntry.getIdentifier())
+                                             .get(ChronoField.MONTH_OF_YEAR);
+
+        return Stream.iterate(Month.of(startingMonth), month -> month.plus(1))
+                     .limit(6) //6 is DIAGRAM_VALUES_LIMIT / STEP
+                     .map(month -> month.getDisplayName(TextStyle.FULL, Locale.ENGLISH))
+                     .collect(Collectors.toList());
+    }
+
     private <T> T processFileContent(String fileName, FileContentProcessor<T> processor) throws IOException {
         Path file = Paths.get(fileName);
         try (BufferedReader reader = Files.newBufferedReader(file)) {
             reader.readLine(); //skip csv headers
             return processor.accept(reader);
         }
+    }
+
+    private long countLines(String fileName) throws IOException {
+        return Files.lines(Paths.get(fileName))
+                    .skip(1)
+                    .count();
     }
 
 }

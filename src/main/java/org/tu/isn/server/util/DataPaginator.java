@@ -2,8 +2,6 @@ package org.tu.isn.server.util;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -12,6 +10,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 public class DataPaginator {
     private final int page;
@@ -42,7 +41,7 @@ public class DataPaginator {
         if (batchLen > inputLimit + outputLimit) {
             offsetTo = inputLimit + outputLimit;
         }
-
+        //TODO concat the two files' streams of lines instead of manually doing the same
         if (offsetFrom < inputLimit) { //start is within existing data
             if (offsetTo > inputLimit) { //time slice is within both files' data
                 long additional = offsetTo - inputLimit;
@@ -59,6 +58,7 @@ public class DataPaginator {
 
     private void consumeFileLines(String fileName, long offsetFrom, long offsetTo, Consumer<String> consumer) throws IOException {
         Path file = Paths.get(fileName);
+//        Stream.concat()
         try (BufferedReader reader = Files.newBufferedReader(file)) {
             reader.readLine(); //skip csv headers
             reader.lines()
@@ -73,7 +73,6 @@ public class DataPaginator {
         Path file = Paths.get(fileName);
         return Files.lines(file)
                     .skip(1)
-//                    .filter(filter)
                     .count();
     }
 
