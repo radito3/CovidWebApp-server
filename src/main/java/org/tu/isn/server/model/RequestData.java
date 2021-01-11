@@ -7,7 +7,7 @@ import org.immutables.value.Value;
 import java.util.List;
 
 @Value.Immutable
-@JsonDeserialize
+@JsonDeserialize(as = ImmutableRequestData.class)
 public interface RequestData {
 
     @JsonProperty("excluded")
