@@ -138,10 +138,10 @@ public class DataExtractionService {
                             continue;
                         }
                         HeatmapDataRow first = innerResult.get(0);
-                        int sum = first.getValue();
-                        for (int j = 1; j < innerResult.size(); j++) {
-                            sum += innerResult.get(j).getValue();
-                        }
+                        int sum = innerResult.stream()
+                                             .skip(1)
+                                             .mapToInt(HeatmapDataRow::getValue)
+                                             .sum();
                         data.add(ImmutableHeatmapDataRow.copyOf(first)
                                                         .withValue(sum));
                     }
