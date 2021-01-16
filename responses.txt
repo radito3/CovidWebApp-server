@@ -1,0 +1,106 @@
+Diagram response json format and example:
+{
+	"page": 0,
+	"total_pages": 10,
+	"x_axis_name": "Time",
+	"x_axis_div": [
+		"January",
+		"February",
+		…
+	],
+	"y_axis_name": "Number affected",
+	"y_axis_div": [
+		5000,
+		10000,
+		15000,
+		…
+	],
+	"resources": [
+		{
+			"date": "20/01/2020",
+			"value": 5361
+		},
+		{
+			"date": "21/01/2020",
+			"value": 5720
+		},
+		…
+	]
+}
+
+Notes:
+A resource entry will be for a single day
+A resource entry value represents number affected (deaths + recovered + active)
+A single page will contain 6 months worth of info for a single country
+First page will begin with present data from dataset
+
+---------------------------------------------------------------------------------
+
+Heatmap response json format and example:
+{
+	"page": 0
+	"total_pages": 10
+	"resources": [
+		{
+			"coordinates": {
+				"lat": 58.8726…,
+				"lon": 25.1325…
+			},
+			"country": "China",
+			"value": 2355
+		},
+		{
+			"coordinates": {
+				"lat": -12.8726…,
+				"lon": 120.1325…
+			},
+			"country": "Australia",
+			"value": 123
+		},
+		…
+	]
+}
+
+Notes: 
+A resource entry will be for either a day/week/month of aggregated data for a country
+A resource entry value represents number affected (deaths + recovered + active)
+A single page will contain 3 * countries resource entries
+First page will begin with present data from dataset
+
+---------------------------------------------------------------------------------
+
+Table response json format and example:
+{
+	"page": 0
+	"total_pages": 10
+	"column_names": [
+		"Date",
+		"Country",
+		"Deaths",
+		"Recovered",
+		"Active"
+	],
+	"resources": [
+		{
+			"date": 20/01/2020,
+			"country": "China",
+			"deaths": 700,
+			"recovered": 100,
+			"active": 5000
+		},
+		{
+			"date": 20/01/2020,
+			"country": "Australia",
+			"deaths": 150,
+			"recovered": 70,
+			"active": 1500
+		},
+		…
+	]
+}
+
+Notes:
+A resource entry will be for a single day
+A resource entry will represent a row in the table
+A single page will contain 10 days * countries resource entries
+First page will begin with present data from dataset
