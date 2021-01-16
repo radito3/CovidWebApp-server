@@ -7,21 +7,19 @@ import io.github.bucket4j.Refill;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 public class RateLimiter implements DisposableBean {
 
     private final Map<String, Bucket> cache = new ConcurrentHashMap<>();
-    private final AtomicBoolean preDestroy = new AtomicBoolean(false);
-
-    public RateLimiter() {
-        new Thread(this::resetCachePeriodically).start();
-    }
+    private ScheduledFuture<?> cacheResetter;
 
     public Bucket resolveForSessionId(String sessionId) {
         return cache.computeIfAbsent(sessionId, this::createBucket);
@@ -35,25 +33,15 @@ public class RateLimiter implements DisposableBean {
                        .build();
     }
 
-    private void resetCachePeriodically() {
-        long start = System.nanoTime();
-        while (!preDestroy.get()) {
-            long current = System.nanoTime();
-            if (TimeUnit.NANOSECONDS.toHours(current - start) >= 3) {
-                start = current;
-                cache.clear();
-            }
-            try {
-                Thread.sleep(TimeUnit.SECONDS.toMillis(10));
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
+    @PostConstruct
+    public void resetCachePeriodically() {
+        cacheResetter = Executors.newSingleThreadScheduledExecutor()
+                                 .scheduleAtFixedRate(cache::clear, 60, TimeUnit.HOURS.toSeconds(3), TimeUnit.SECONDS);
     }
 
     @Override
     public void destroy() {
-        preDestroy.set(true);
         cache.clear();
+        cacheResetter.cancel(false);
     }
 }
