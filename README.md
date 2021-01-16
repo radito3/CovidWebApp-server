@@ -70,7 +70,7 @@ docker run -p 80:8080 -v $VOLUME:/data \
     server:latest
 ```
 
-The server will be available to serve traffic at http://`<localhost | public domain>`/api/v1
+The server will be available to serve traffic at `http://<localhost | public domain>/api/v1`
 
 To shutdown the server use a POST request to /actuator/shutdown
 ```
