@@ -32,7 +32,7 @@ public class DataPersister {
     }
 
     public String createCsvFromDataset(Set<String> excludedCountries) {
-        String inputDataFileName = System.getenv("INPUT_DATA_FILE_NAME") + "_" + UUID.randomUUID().toString();
+        String inputDataFileName = System.getenv("INPUT_DATA_FILE_NAME") + "_" + UUID.randomUUID().toString() + ".csv";
         Path inputDataFile = Paths.get(inputDataFileName);
         try {
             Files.createFile(inputDataFile);
@@ -46,7 +46,7 @@ public class DataPersister {
     }
 
     public String createCsvFromFile(InputStream content) {
-        String inputDataFileName = System.getenv("INPUT_DATA_FILE_NAME") + "_" + UUID.randomUUID().toString();
+        String inputDataFileName = System.getenv("INPUT_DATA_FILE_NAME") + "_" + UUID.randomUUID().toString() + ".csv";
         Path inputDataFile = Paths.get(inputDataFileName);
         try {
             Files.createFile(inputDataFile);
@@ -93,13 +93,14 @@ public class DataPersister {
 
     private void writeDataRow(String line, BufferedWriter writer) throws IOException {
         String[] parts = line.split(",");
-        int partsLimit = datasetParser.getNumberOfFields();
-        for (int i = 0; i < partsLimit; i++) {
-            writer.write(parts[i]);
-            if (i != partsLimit - 1) {
-                writer.write(',');
-            }
+        StringBuilder sb = new StringBuilder();
+        for (int i : List.of(datasetParser.getDateIndex(), datasetParser.getCountryNameIndex(), datasetParser.getDeathsIndex(),
+                             datasetParser.getRecoveredIndex(), datasetParser.getActiveIndex())) {
+            sb.append(parts[i]);
+            sb.append(',');
         }
+        sb.deleteCharAt(sb.length() - 1);
+        writer.write(sb.toString());
     }
 
 }
