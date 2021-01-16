@@ -1,0 +1,69 @@
+Start analysis with existing data:
+POST /api/v1/analyze_existing_data
+	Accepts "application/json"
+	Produces "text/plain"
+	[Optional] request body:
+		{
+			"excluded": [
+				"China",
+				"Brazil",
+				…
+			]
+		}
+	If no body is sent, no countries are excluded
+	Returns 202 on success with the id of the operation
+	Returns 500 on server or ML script error
+	
+Start analysis with user provided data:
+POST /api/v1/analyze_user_data
+	Accepts "multipart/form-data"
+	Produces "text/plain"
+	Request file:
+		Date,Country,Confirmed,Deaths,Recovered,Active,New cases,New deaths,New recovered
+		20/02/2020,Australia,620,0,120,500,1,1,1
+		20/03/2020,China,32412,4999,600,12000,2,2,2
+		…
+	Returns 202 on success with the id of the operation
+	Returns 500 on server or ML script error
+	
+Poll analysis operation status:
+GET /api/v1/status/{operation_id}
+	Returns 204 if operation is still running
+	Returns 201 if operation is complete
+	Returns 500 on server or ML script error
+	
+Retrieve completed analysis information in heatmap format:
+GET /api/v1/data/{operation_id}/heatmap?page=2&aggregate_by=week
+	Path parameter "operation_id":
+		Represents the Id of the operation
+	[Optional] Query parameter "page":
+		Represents the page of data to return
+		Default (if not provided) value 0
+	[Optional] Query parameter "aggregate_by": 
+		Represents the type of aggregation to perform
+		Default value "day"
+	Produces "application/json"
+	
+Retrieve completed analysis information in diagram format:
+GET /api/v1/data/{operation_id}/diagram?country=Germany&page=5
+	Path parameter "operation_id":
+		Represents the Id of the operation
+	Query parameter "country":
+		Represents the country for which to retrieve data
+        Needs to be URL encoded
+	[Optional] Query parameter "page":
+		Represents the page of data to return
+		Default value 0
+	Produces "application/json"
+
+Retrieve completed analysis information in table format:
+GET /api/v1/data/{operation_id}/table?page=4
+	Path parameter "operation_id":
+		Represents the Id of the operation
+	[Optional] Query parameter "page":
+		Represents the page of data to return
+		Default value 0
+	Produces "application/json"
+
+Shutdown server:
+POST /actuator/shutdown
