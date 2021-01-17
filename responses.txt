@@ -42,18 +42,10 @@ Heatmap response json format and example:
 	"total_pages": 10
 	"resources": [
 		{
-			"coordinates": {
-				"lat": 58.8726…,
-				"lon": 25.1325…
-			},
 			"country": "China",
 			"value": 2355
 		},
 		{
-			"coordinates": {
-				"lat": -12.8726…,
-				"lon": 120.1325…
-			},
 			"country": "Australia",
 			"value": 123
 		},

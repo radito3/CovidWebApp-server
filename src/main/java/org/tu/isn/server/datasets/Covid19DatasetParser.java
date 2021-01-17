@@ -18,33 +18,18 @@ public class Covid19DatasetParser implements DatasetParser {
     }
 
     @Override
-    public int getCountryCoordinateLatIndex() {
-        return 2;
-    }
-
-    @Override
-    public int getCountryCoordinateLonIndex() {
+    public int getDeathsIndex() {
         return 3;
     }
 
     @Override
-    public int getDeathsIndex() {
+    public int getRecoveredIndex() {
         return 4;
     }
 
     @Override
-    public int getRecoveredIndex() {
-        return 5;
-    }
-
-    @Override
     public int getActiveIndex() {
-        return 6;
-    }
-
-    @Override
-    public int getNumberOfFields() {
-        return 7;
+        return 5;
     }
 
     @Override

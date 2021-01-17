@@ -72,7 +72,7 @@ public class DataPersister {
     }
 
     private void writeHeaders(BufferedWriter writer) throws IOException {
-        List<String> headers = List.of("Date", "Country", "Latitude", "Longitude", "Deaths", "Recovered", "Active");
+        List<String> headers = List.of("Date", "Country", "Deaths", "Recovered", "Active");
         for (int i = 0; i < headers.size(); i++) {
             writer.write(headers.get(i));
             if (i != headers.size() - 1) {

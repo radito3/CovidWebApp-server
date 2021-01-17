@@ -162,10 +162,7 @@ public class DataExtractionService {
         int deaths = Integer.parseInt(parts[datasetParser.getDeathsIndex()]);
         int recovered = Integer.parseInt(parts[datasetParser.getRecoveredIndex()]);
         int active = Integer.parseInt(parts[datasetParser.getActiveIndex()]);
-        double lat = Double.parseDouble(parts[datasetParser.getCountryCoordinateLatIndex()]);
-        double lon = Double.parseDouble(parts[datasetParser.getCountryCoordinateLonIndex()]);
         return ImmutableHeatmapDataRow.builder()
-                                      .coordinates(ImmutableCoordinate.of(lat, lon))
                                       .countryName(parts[datasetParser.getCountryNameIndex()])
                                       .value(deaths + recovered + active)
                                       .build();
@@ -269,8 +266,11 @@ public class DataExtractionService {
                                              .parse(firstEntry.getIdentifier())
                                              .get(ChronoField.MONTH_OF_YEAR);
 
+        int valueDivisionsStep = Integer.parseInt(System.getenv("DIAGRAM_VALUES_STEP"));
+        int valuesLimit = Integer.parseInt(System.getenv("DIAGRAM_VALUES_LIMIT"));
+
         return Stream.iterate(Month.of(startingMonth), month -> month.plus(1))
-                     .limit(6) //6 is DIAGRAM_VALUES_LIMIT / STEP
+                     .limit(valuesLimit / valueDivisionsStep)
                      .map(month -> month.getDisplayName(TextStyle.FULL, Locale.ENGLISH))
                      .collect(Collectors.toList());
     }

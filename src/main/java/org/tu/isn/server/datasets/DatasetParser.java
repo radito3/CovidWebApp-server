@@ -9,17 +9,11 @@ public interface DatasetParser {
 
     int getCountryNameIndex();
 
-    int getCountryCoordinateLatIndex();
-
-    int getCountryCoordinateLonIndex();
-
     int getDeathsIndex();
 
     int getRecoveredIndex();
 
     int getActiveIndex();
-
-    int getNumberOfFields();
 
     InputStream getContent() throws IOException;
 

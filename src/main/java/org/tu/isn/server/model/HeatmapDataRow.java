@@ -8,9 +8,6 @@ import org.immutables.value.Value;
 @JsonSerialize
 public interface HeatmapDataRow {
 
-    @JsonProperty("coordinates")
-    Coordinate getCoordinates();
-
     @JsonProperty("country")
     String getCountryName();
 
