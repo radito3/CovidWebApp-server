@@ -14,6 +14,9 @@ public interface TableDataRow {
     @JsonProperty("country")
     String getCountry();
 
+    @JsonProperty("confirmed")
+    Integer getConfirmed();
+
     @JsonProperty("deaths")
     Integer getDeaths();
 
@@ -22,5 +25,16 @@ public interface TableDataRow {
 
     @JsonProperty("active")
     Integer getActive();
+
+    @JsonProperty("new_cases")
+    Integer getNewCases();
+
+    @JsonProperty("new_deaths")
+    Integer getNewDeaths();
+
+    @JsonProperty("new_recovered")
+    Integer getNewRecovered();
+
+
 
 }

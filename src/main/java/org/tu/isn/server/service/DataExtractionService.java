@@ -68,7 +68,8 @@ public class DataExtractionService {
         return ImmutableTableResponseCovidData.builder()
                                               .currentPage(page)
                                               .totalPages(totalBatches)
-                                              .headers(List.of("Date", "Country", "Deaths", "Recovered", "Active"))
+                                              .headers(List.of("Date", "Country", "Confirmed", "Deaths", "Recovered", "Active",
+                                                               "New cases", "New deaths", "New recovered"))
                                               .resources(data)
                                               .build();
     }
@@ -78,9 +79,13 @@ public class DataExtractionService {
         return ImmutableTableDataRow.builder()
                                     .date(parts[datasetParser.getDateIndex()])
                                     .country(parts[datasetParser.getCountryNameIndex()])
+                                    .confirmed(Integer.valueOf(parts[datasetParser.getConfirmedIndex()]))
                                     .deaths(Integer.valueOf(parts[datasetParser.getDeathsIndex()]))
                                     .recovered(Integer.valueOf(parts[datasetParser.getRecoveredIndex()]))
                                     .active(Integer.valueOf(parts[datasetParser.getActiveIndex()]))
+                                    .newCases(Integer.valueOf(parts[datasetParser.getNewCasesIndex()]))
+                                    .newDeaths(Integer.valueOf(parts[datasetParser.getNewDeathsIndex()]))
+                                    .newRecovered(Integer.valueOf(parts[datasetParser.getNewRecoveredIndex()]))
                                     .build();
     }
 

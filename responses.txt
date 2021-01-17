@@ -68,24 +68,36 @@ Table response json format and example:
 	"column_names": [
 		"Date",
 		"Country",
+		"Confirmed",
 		"Deaths",
 		"Recovered",
-		"Active"
+		"Active",
+		"New cases",
+		"New deaths",
+		"New recovered"
 	],
 	"resources": [
 		{
 			"date": 20/01/2020,
 			"country": "China",
+			"confirmed": 5800,
 			"deaths": 700,
 			"recovered": 100,
-			"active": 5000
+			"active": 5000,
+			"new_cases": 5435,
+			"new_deaths": 123,
+			"new_recovered": 545
 		},
 		{
 			"date": 20/01/2020,
 			"country": "Australia",
+			"confirmed": 1720,
 			"deaths": 150,
 			"recovered": 70,
-			"active": 1500
+			"active": 1500,
+			"new_cases": 5435,
+            "new_deaths": 123,
+            "new_recovered": 545
 		},
 		…
 	]

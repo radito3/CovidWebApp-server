@@ -9,11 +9,21 @@ public interface DatasetParser {
 
     int getCountryNameIndex();
 
+    int getConfirmedIndex();
+
     int getDeathsIndex();
 
     int getRecoveredIndex();
 
     int getActiveIndex();
+
+    int getNewCasesIndex();
+
+    int getNewDeathsIndex();
+
+    int getNewRecoveredIndex();
+
+    int getNumberOfFields();
 
     InputStream getContent() throws IOException;
 

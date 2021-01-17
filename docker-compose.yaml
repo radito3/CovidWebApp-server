@@ -44,7 +44,7 @@ services:
       - OUTPUT_DATA_FILE_NAME=../data/output_data
 
   dataset-data:
-    image: radito3/covid-datasets:v1
+    image: radito3/covid-datasets:v2
     volumes:
       - internal-vol:/data
 

@@ -18,6 +18,11 @@ public class Covid19DatasetParser implements DatasetParser {
     }
 
     @Override
+    public int getConfirmedIndex() {
+        return 2;
+    }
+
+    @Override
     public int getDeathsIndex() {
         return 3;
     }
@@ -30,6 +35,26 @@ public class Covid19DatasetParser implements DatasetParser {
     @Override
     public int getActiveIndex() {
         return 5;
+    }
+
+    @Override
+    public int getNewCasesIndex() {
+        return 6;
+    }
+
+    @Override
+    public int getNewDeathsIndex() {
+        return 7;
+    }
+
+    @Override
+    public int getNewRecoveredIndex() {
+        return 8;
+    }
+
+    @Override
+    public int getNumberOfFields() {
+        return 9;
     }
 
     @Override

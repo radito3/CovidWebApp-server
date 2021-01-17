@@ -72,7 +72,8 @@ public class DataPersister {
     }
 
     private void writeHeaders(BufferedWriter writer) throws IOException {
-        List<String> headers = List.of("Date", "Country", "Deaths", "Recovered", "Active");
+        List<String> headers = List.of("Date", "Country", "Confirmed", "Deaths", "Recovered", "Active", "New cases",
+                                       "New deaths", "New recovered");
         for (int i = 0; i < headers.size(); i++) {
             writer.write(headers.get(i));
             if (i != headers.size() - 1) {
@@ -93,14 +94,13 @@ public class DataPersister {
 
     private void writeDataRow(String line, BufferedWriter writer) throws IOException {
         String[] parts = line.split(",");
-        StringBuilder sb = new StringBuilder();
-        for (int i : List.of(datasetParser.getDateIndex(), datasetParser.getCountryNameIndex(), datasetParser.getDeathsIndex(),
-                             datasetParser.getRecoveredIndex(), datasetParser.getActiveIndex())) {
-            sb.append(parts[i]);
-            sb.append(',');
+        int partsLimit = datasetParser.getNumberOfFields();
+        for (int i = 0; i < partsLimit; i++) {
+            writer.write(parts[i]);
+            if (i != partsLimit - 1) {
+                writer.write(',');
+            }
         }
-        sb.deleteCharAt(sb.length() - 1);
-        writer.write(sb.toString());
     }
 
 }
