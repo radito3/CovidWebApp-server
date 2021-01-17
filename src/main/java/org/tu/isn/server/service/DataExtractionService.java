@@ -21,8 +21,6 @@ import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -117,23 +115,27 @@ public class DataExtractionService {
 
                 data = dataPaginator.getPageOfResources(this::createHeatmapDataRow);
             } else {
-                long offsetFrom = page == 0 ? 0 : (long) page * batchLen;
-
-                //FIXME too much indentation -> extract into methods OR refactor data paginator
                 for (String country : countries) {
                     for (long i = 0; i < 3; i++) {
-                        Predicate<String> lineFilter = line -> {
-                            String[] parts = line.split(",");
-                            return country.replaceAll("\\*", "")
-                                          .equals(parts[datasetParser.getCountryNameIndex()].replaceAll("\\*", ""));
-                        };
-
                         long start = i * aggregateType.getDaysMapped();
-                        long limit = aggregateType.getDaysMapped();
+                        int limit = aggregateType.getDaysMapped();
 
-                        List<HeatmapDataRow> innerResult = consumeFileLines(inputFileName, outputFileName,
-                                                                            offsetFrom, start, limit,
-                                                                            lineFilter, this::createHeatmapDataRow);
+                        DataPaginator dataPaginator = DataPaginator.builder()
+                                                                   .setInputFileName(inputFileName)
+                                                                   .setOutputFileName(outputFileName)
+                                                                   .setPage(page)
+                                                                   .setBatchLen(limit)
+                                                                   .setInitialOffset((long) page * batchLen)
+                                                                   .setFilter(line -> {
+                                                                       String[] parts = line.split(",");
+                                                                       return country.replaceAll("\\*", "")
+                                                                                     .equals(parts[datasetParser.getCountryNameIndex()]
+                                                                                                 .replaceAll("\\*", ""));
+                                                                   })
+                                                                   .setComputeStartOffset((p, b) -> start)
+                                                                   .build();
+
+                        List<HeatmapDataRow> innerResult = dataPaginator.getPageOfResources(this::createHeatmapDataRow);
                         if (innerResult.isEmpty()) {
                             continue;
                         }
@@ -166,26 +168,6 @@ public class DataExtractionService {
                                       .countryName(parts[datasetParser.getCountryNameIndex()])
                                       .value(deaths + recovered + active)
                                       .build();
-    }
-
-    //FIXME hideous amount of parameters...
-    private <T> List<T> consumeFileLines(String fileNameIn, String fileNameOut,
-                                  long offsetFrom, long start, long limit,
-                                  Predicate<String> filter, Function<String, ? extends T> entryProducer) throws IOException {
-        Path inputFile = Paths.get(fileNameIn);
-        Path outputFile = Paths.get(fileNameOut);
-
-        try (BufferedReader inputReader = Files.newBufferedReader(inputFile);
-            BufferedReader outputReader = Files.newBufferedReader(outputFile)) {
-
-            return Stream.concat(inputReader.lines().skip(1), outputReader.lines().skip(1))
-                         .skip(offsetFrom)
-                         .filter(filter)
-                         .skip(start)
-                         .limit(limit)
-                         .map(entryProducer)
-                         .collect(Collectors.toList());
-        }
     }
 
     public DiagramResponseCovidData extractDiagramData(String operationId, int page, String country) {
