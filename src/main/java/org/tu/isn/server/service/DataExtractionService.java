@@ -249,7 +249,7 @@ public class DataExtractionService {
     }
 
     private List<String> generateAbscissaValueDivisions(DiagramDataRow firstEntry) {
-        int startingMonth = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+        int startingMonth = DateTimeFormatter.ofPattern("yyyy-MM-dd")
                                              .parse(firstEntry.getIdentifier())
                                              .get(ChronoField.MONTH_OF_YEAR);
 
