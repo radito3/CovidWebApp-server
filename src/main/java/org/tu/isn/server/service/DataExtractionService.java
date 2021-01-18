@@ -35,8 +35,8 @@ public class DataExtractionService {
     private static final String OUTPUT_DATA_FILE_NAME = System.getenv("OUTPUT_DATA_FILE_NAME");
 
     public TableResponseCovidData extractTableData(String operationId, int page) {
-        String inputFileName = INPUT_DATA_FILE_NAME + "_" + operationId;
-        String outputFileName = OUTPUT_DATA_FILE_NAME + "_" + operationId;
+        String inputFileName = INPUT_DATA_FILE_NAME + "_" + operationId + ".csv";
+        String outputFileName = OUTPUT_DATA_FILE_NAME + "_" + operationId + ".csv";
         List<TableDataRow> data = new ArrayList<>();
         int totalBatches = -1;
         try {
@@ -91,8 +91,8 @@ public class DataExtractionService {
 
     public HeatmapResponseCovidData extractHeatmapData(String operationId, int page, String aggregateBy) {
         AggregateType aggregateType = AggregateType.of(aggregateBy);
-        String inputFileName = INPUT_DATA_FILE_NAME + "_" + operationId;
-        String outputFileName = OUTPUT_DATA_FILE_NAME + "_" + operationId;
+        String inputFileName = INPUT_DATA_FILE_NAME + "_" + operationId + ".csv";
+        String outputFileName = OUTPUT_DATA_FILE_NAME + "_" + operationId + ".csv";
         List<HeatmapDataRow> data = new ArrayList<>();
         int totalBatches = -1;
         try {
@@ -177,8 +177,8 @@ public class DataExtractionService {
 
     public DiagramResponseCovidData extractDiagramData(String operationId, int page, String country) {
         String countryName = URLDecoder.decode(country, StandardCharsets.UTF_8);
-        String inputFileName = INPUT_DATA_FILE_NAME + "_" + operationId;
-        String outputFileName = OUTPUT_DATA_FILE_NAME + "_" + operationId;
+        String inputFileName = INPUT_DATA_FILE_NAME + "_" + operationId + ".csv";
+        String outputFileName = OUTPUT_DATA_FILE_NAME + "_" + operationId + ".csv";
         List<DiagramDataRow> data = new ArrayList<>();
         int totalBatches = -1;
         try {
