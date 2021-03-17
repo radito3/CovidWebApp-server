@@ -15,7 +15,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -26,10 +25,6 @@ public class DataPersister {
 
     @Autowired
     private DatasetParser datasetParser;
-
-    public String createCsvFromDataset() {
-        return createCsvFromDataset(Collections.emptySet());
-    }
 
     public String createCsvFromDataset(Set<String> excludedCountries) {
         String inputDataFileName = System.getenv("INPUT_DATA_FILE_NAME") + "_" + UUID.randomUUID().toString() + ".csv";

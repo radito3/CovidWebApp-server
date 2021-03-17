@@ -5,14 +5,12 @@ import org.springframework.stereotype.Service;
 import org.tu.isn.server.datasets.DatasetParser;
 import org.tu.isn.server.model.*;
 import org.tu.isn.server.util.DataPaginator;
-import org.tu.isn.server.util.FileContentProcessor;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Month;
 import java.time.format.DateTimeFormatter;
@@ -21,6 +19,10 @@ import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -40,14 +42,11 @@ public class DataExtractionService {
         List<TableDataRow> data = new ArrayList<>();
         int totalBatches = -1;
         try {
-            long countries = processFileContent(inputFileName, reader -> reader.lines()
-                                                                               .map(line -> line.split(",")[datasetParser.getCountryNameIndex()])
-                                                                               .distinct()
-                                                                               .count());
+            long numOfCountries = countRemappedDistinctLines(inputFileName, this::extractCountryName);
             long outputFileLines = countLines(outputFileName);
             long inputFileLines = countLines(inputFileName);
 
-            int batchLen = (int) (10 * countries);
+            int batchLen = (int) (10 * numOfCountries);
             long totalLines = outputFileLines + inputFileLines;
             totalBatches = (int) (totalLines / batchLen);
             if (batchLen >= totalLines) {
@@ -95,64 +94,29 @@ public class DataExtractionService {
         String outputFileName = OUTPUT_DATA_FILE_NAME + "_" + operationId + ".csv";
         List<HeatmapDataRow> data = new ArrayList<>();
         int totalBatches = -1;
-        try {
-            List<String> countries = processFileContent(inputFileName, reader -> reader.lines()
-                                                                                       .map(line -> line.split(",")[datasetParser.getCountryNameIndex()])
-                                                                                       .distinct()
-                                                                                       .collect(Collectors.toList()));
+        try (BufferedReader inputReader = Files.newBufferedReader(Paths.get(inputFileName));
+            BufferedReader outputReader = Files.newBufferedReader(Paths.get(outputFileName))) {
+
+            long numOfCountries = countRemappedDistinctLines(inputFileName, this::extractCountryName);
             long outputFileLines = countLines(outputFileName);
             long inputFileLines = countLines(inputFileName);
             
-            int batchLen = 3 * aggregateType.getDaysMapped() * countries.size();
+            int batchLen = aggregateType.getDaysMapped() * (int) numOfCountries;
             long totalLines = outputFileLines + inputFileLines;
             totalBatches = (int) (totalLines / batchLen);
             if (totalBatches == 0) {
                 totalBatches = 1;
             }
 
-            if (aggregateType == AggregateType.DAY) {
-                DataPaginator dataPaginator = DataPaginator.builder()
-                                                           .setPage(page)
-                                                           .setBatchLen(batchLen)
-                                                           .setInputFileName(inputFileName)
-                                                           .setOutputFileName(outputFileName)
-                                                           .build();
+            Map<String, Optional<HeatmapDataRow>> map = Stream.concat(inputReader.lines().skip(1), outputReader.lines().skip(1)) //skip csv headers
+                                                              .skip((long) page * batchLen)
+                                                              .limit(batchLen)
+                                                              .collect(Collectors.groupingBy(this::extractCountryName,
+                                                                                             Collectors.mapping(this::createHeatmapDataRow,
+                                                                                                                Collectors.reducing(this::mergeHeatmapDataRows))));
 
-                data = dataPaginator.getPageOfResources(this::createHeatmapDataRow);
-            } else {
-                for (String country : countries) {
-                    for (long i = 0; i < 3; i++) {
-                        long start = i * aggregateType.getDaysMapped();
-                        int limit = aggregateType.getDaysMapped();
-
-                        DataPaginator dataPaginator = DataPaginator.builder()
-                                                                   .setInputFileName(inputFileName)
-                                                                   .setOutputFileName(outputFileName)
-                                                                   .setPage(page)
-                                                                   .setBatchLen(limit)
-                                                                   .setInitialOffset((long) page * batchLen)
-                                                                   .setFilter(line -> {
-                                                                       String[] parts = line.split(",");
-                                                                       return country.replaceAll("\\*", "")
-                                                                                     .equals(parts[datasetParser.getCountryNameIndex()]
-                                                                                                 .replaceAll("\\*", ""));
-                                                                   })
-                                                                   .setComputeStartOffset((p, b) -> start)
-                                                                   .build();
-
-                        List<HeatmapDataRow> innerResult = dataPaginator.getPageOfResources(this::createHeatmapDataRow);
-                        if (innerResult.isEmpty()) {
-                            continue;
-                        }
-                        HeatmapDataRow first = innerResult.get(0);
-                        int sum = innerResult.stream()
-                                             .skip(1)
-                                             .mapToInt(HeatmapDataRow::getValue)
-                                             .sum();
-                        data.add(ImmutableHeatmapDataRow.copyOf(first)
-                                                        .withValue(sum));
-                    }
-                }
+            for (Optional<HeatmapDataRow> aggregatedDataRow : map.values()) {
+                aggregatedDataRow.ifPresent(data::add);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -175,6 +139,11 @@ public class DataExtractionService {
                                       .build();
     }
 
+    private HeatmapDataRow mergeHeatmapDataRows(HeatmapDataRow first, HeatmapDataRow second) {
+        return ImmutableHeatmapDataRow.copyOf(first)
+                                      .withValue(first.getValue() + second.getValue());
+    }
+
     public DiagramResponseCovidData extractDiagramData(String operationId, int page, String country) {
         String countryName = URLDecoder.decode(country, StandardCharsets.UTF_8);
         String inputFileName = INPUT_DATA_FILE_NAME + "_" + operationId + ".csv";
@@ -182,16 +151,8 @@ public class DataExtractionService {
         List<DiagramDataRow> data = new ArrayList<>();
         int totalBatches = -1;
         try {
-            long presentDaysForCountry = processFileContent(inputFileName, reader -> reader.lines()
-                                                                                           .map(line -> line.split(",")[datasetParser.getCountryNameIndex()])
-                                                                                           .map(countryStr -> countryStr.replaceAll("\\*", ""))
-                                                                                           .filter(countryName::equals)
-                                                                                           .count());
-            long predictedDaysForCountry = processFileContent(outputFileName, reader -> reader.lines()
-                                                                                              .map(line -> line.split(",")[datasetParser.getCountryNameIndex()])
-                                                                                              .map(countryStr -> countryStr.replaceAll("\\*", ""))
-                                                                                              .filter(countryName::equals)
-                                                                                              .count());
+            long presentDaysForCountry = countFilteredLines(inputFileName, line -> countryMatches(line, countryName));
+            long predictedDaysForCountry = countFilteredLines(outputFileName, line -> countryMatches(line, countryName));
 
             int batchLen = 6 * 30;
             long totalDaysForCountry = presentDaysForCountry + predictedDaysForCountry;
@@ -205,11 +166,7 @@ public class DataExtractionService {
                                                        .setBatchLen(batchLen)
                                                        .setInputFileName(inputFileName)
                                                        .setOutputFileName(outputFileName)
-                                                       .setFilter(line -> {
-                                                           String[] parts = line.split(",");
-                                                           String countryStr = parts[datasetParser.getCountryNameIndex()];
-                                                           return countryName.equals(countryStr.replaceAll("\\*", ""));
-                                                       })
+                                                       .setFilter(line -> countryMatches(line, countryName))
                                                        .build();
 
             data = dataPaginator.getPageOfResources(this::createDiagramDataRowForCountry);
@@ -227,6 +184,11 @@ public class DataExtractionService {
                                                 .build();
     }
 
+    private boolean countryMatches(String line, String countryName) {
+        String countryStr = extractCountryName(line);
+        return countryName.equals(countryStr.replaceAll("\\*", ""));
+    }
+
     private DiagramDataRow createDiagramDataRowForCountry(String line) {
         String[] parts = line.split(",");
         int deaths = Integer.parseInt(parts[datasetParser.getDeathsIndex()]);
@@ -241,6 +203,7 @@ public class DataExtractionService {
     private List<Integer> generateOrdinateValueDivisions() {
         String valueDivisionsStep = System.getenv("DIAGRAM_VALUES_STEP");
         String valuesLimit = System.getenv("DIAGRAM_VALUES_LIMIT");
+
         return IntStream.iterate(0, i -> i + Integer.parseInt(valueDivisionsStep))
                         .skip(1)
                         .takeWhile(i -> i <= Integer.parseInt(valuesLimit))
@@ -262,12 +225,8 @@ public class DataExtractionService {
                      .collect(Collectors.toList());
     }
 
-    private <T> T processFileContent(String fileName, FileContentProcessor<T> processor) throws IOException {
-        Path file = Paths.get(fileName);
-        try (BufferedReader reader = Files.newBufferedReader(file)) {
-            reader.readLine(); //skip csv headers
-            return processor.accept(reader);
-        }
+    private String extractCountryName(String line) {
+        return line.split(",")[datasetParser.getCountryNameIndex()];
     }
 
     private long countLines(String fileName) throws IOException {
@@ -276,4 +235,18 @@ public class DataExtractionService {
                     .count();
     }
 
+    private long countFilteredLines(String fileName, Predicate<String> filter) throws IOException {
+        return Files.lines(Paths.get(fileName))
+                    .skip(1)
+                    .filter(filter)
+                    .count();
+    }
+
+    private long countRemappedDistinctLines(String fileName, UnaryOperator<String> mapper) throws IOException {
+        return Files.lines(Paths.get(fileName))
+                    .skip(1)
+                    .map(mapper)
+                    .distinct()
+                    .count();
+    }
 }

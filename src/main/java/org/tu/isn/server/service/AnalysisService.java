@@ -9,6 +9,7 @@ import org.tu.isn.server.model.RequestData;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.HashSet;
 
 @Service
@@ -20,14 +21,8 @@ public class AnalysisService {
     private DataPersister dataPersister;
 
     public String startAnalysisFromJson(RequestData data) {
-        if (data == null) {
-            String fileName = dataPersister.createCsvFromDataset();
-            if (fileName == null) {
-                return null;
-            }
-            return dockerService.callScriptContainer(CallType.START_ANALYSIS, fileName);
-        }
-        String fileName = dataPersister.createCsvFromDataset(new HashSet<>(data.getExcludedCountries()));
+        String fileName = dataPersister.createCsvFromDataset(data == null ? Collections.emptySet() :
+                                                                 new HashSet<>(data.getExcludedCountries()));
         if (fileName == null) {
             return null;
         }
@@ -48,7 +43,7 @@ public class AnalysisService {
     }
 
     public boolean checkStatus(String id) {
-        return dockerService.callScriptContainer(CallType.POLL_STATUS, id);
+        return Boolean.parseBoolean(dockerService.callScriptContainer(CallType.POLL_STATUS, id));
     }
 
 }

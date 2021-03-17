@@ -7,7 +7,6 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 
 @Service
 public class DockerService {
@@ -16,13 +15,12 @@ public class DockerService {
                                                 .version(HttpClient.Version.HTTP_1_1)
                                                 .build();
 
-    @SuppressWarnings("unchecked")
-    public <T> T callScriptContainer(CallType callType, String arg) {
+    public String callScriptContainer(CallType callType, String arg) {
         try {
             if (callType == CallType.START_ANALYSIS) {
-                return (T) startAnalysis(arg);
+                return startAnalysis(arg);
             }
-            return (T) pollStatus(arg);
+            return pollStatus(arg);
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
             return null;
@@ -30,18 +28,17 @@ public class DockerService {
     }
 
     private String startAnalysis(String fileName) throws IOException, InterruptedException {
-        HttpResponse<String> response = client.send(buildPostRequest(fileName),
-                                                    HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        HttpResponse<Void> response = client.send(buildPostRequest(fileName), HttpResponse.BodyHandlers.discarding());
         if (response.statusCode() / 100 != 2) {
             return null;
         }
         return fileName.substring(fileName.lastIndexOf('_') + 1, fileName.indexOf('.'));
     }
 
-    private Boolean pollStatus(String id) throws IOException, InterruptedException {
+    private String pollStatus(String id) throws IOException, InterruptedException {
         int statusCode = client.send(buildGetRequest(id), HttpResponse.BodyHandlers.discarding())
                                .statusCode();
-        return statusCode == 200;
+        return Boolean.toString(statusCode == 200);
     }
 
     private HttpRequest buildPostRequest(String fileName) {
